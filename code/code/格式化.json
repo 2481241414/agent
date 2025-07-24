@@ -1,0 +1,497 @@
+[
+  {
+    "name": "open_orders",
+    "description": "在app中查看指定状态的订单列表 (该函数不涉及闲鱼、转转)",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "app": {
+          "type": "string",
+          "description": "应用名称"
+        },
+        "order_status": {
+          "type": "string",
+          "description": "订单状态。默认值: '无'。{options_text}"
+        }
+      },
+      "required": [
+        "app"
+      ]
+    }
+  },
+  {
+    "name": "open_second_hand_orders",
+    "description": "在二手交易中查看指定状态的订单列表 (该函数不涉及其他12个app)",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "app": {
+          "type": "string",
+          "description": "应用名称，仅限闲鱼、转转"
+        },
+        "order_status": {
+          "type": "string",
+          "description": "订单状态。默认值: '无'。{options_text}"
+        },
+        "product_status": {
+          "type": "string",
+          "description": "用户售卖商品的状态。默认值: '无'。{options_text}"
+        },
+        "transaction_type": {
+          "type": "string",
+          "description": "区分用户的状态是买入还是卖出。{options_text}"
+        }
+      },
+      "required": [
+        "app",
+        "order_status"
+      ]
+    }
+  },
+  {
+    "name": "search_order",
+    "description": "在app中搜索指定内容的订单",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "app": {
+          "type": "string",
+          "description": "应用名称"
+        },
+        "search_info": {
+          "type": "string",
+          "description": "搜索内容"
+        },
+        "order_status": {
+          "type": "string",
+          "description": "对订单的限定条件。默认值: '无'。{options_text}"
+        }
+      },
+      "required": [
+        "app",
+        "search_info"
+      ]
+    }
+  },
+  {
+    "name": "open_reviews",
+    "description": "在app中查看我的评价 (该函数只涉及拼多多)",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "app": {
+          "type": "string",
+          "description": "应用名称，仅限拼多多"
+        }
+      },
+      "required": [
+        "app"
+      ]
+    }
+  },
+  {
+    "name": "apply_after_sales",
+    "description": "申请退款或售后 (该函数只涉及得物)",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "app": {
+          "type": "string",
+          "description": "应用名称，仅限得物"
+        }
+      },
+      "required": [
+        "app"
+      ]
+    }
+  },
+  {
+    "name": "open_invoice_page",
+    "description": "查看发票相关服务页面 (该函数不涉及其他9个app)",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "app": {
+          "type": "string",
+          "description": "应用名称"
+        },
+        "page_type": {
+          "type": "string",
+          "description": "打开的页面类型。{options_text}"
+        }
+      },
+      "required": [
+        "app",
+        "page_type"
+      ]
+    }
+  },
+  {
+    "name": "open_cart_content",
+    "description": "查看购物车中指定类型的商品 (该函数不涉及闲鱼、转转、拼多多)",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "app": {
+          "type": "string",
+          "description": "应用名称。阿里巴巴叫'采购车', 得物叫'想要的商品', 其他叫'购物车'"
+        },
+        "filter_type": {
+          "type": "string",
+          "description": "指定的商品类型。默认值: '无'。{options_text}"
+        }
+      },
+      "required": [
+        "app",
+        "filter_type"
+      ]
+    }
+  },
+  {
+    "name": "search_cart_content",
+    "description": "在购物车中搜索指定物品 (该函数只涉及抖音、抖音极速版、京东、淘宝、唯品会)",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "app": {
+          "type": "string",
+          "description": "应用名称"
+        },
+        "search_info": {
+          "type": "string",
+          "description": "搜索内容"
+        }
+      },
+      "required": [
+        "app",
+        "search_info"
+      ]
+    }
+  },
+  {
+    "name": "open_cart_page",
+    "description": "打开购物车指定界面 (该函数只涉及淘宝)",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "app": {
+          "type": "string",
+          "description": "应用名称，仅限淘宝"
+        },
+        "page_type": {
+          "type": "string",
+          "description": "购物车中的功能界面。{options_text}"
+        }
+      },
+      "required": [
+        "app",
+        "page_type"
+      ]
+    }
+  },
+  {
+    "name": "open_customer_service",
+    "description": "在app应用程序中联系官方客服 (该函数涉及全部14个app)",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "app": {
+          "type": "string",
+          "description": "应用名称"
+        }
+      },
+      "required": [
+        "app"
+      ]
+    }
+  },
+  {
+    "name": "sign_in",
+    "description": "在app中(具体某个子页面)使用签到功能 (该函数不涉及转转)",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "app": {
+          "type": "string",
+          "description": "应用名称"
+        },
+        "page_type": {
+          "type": "string",
+          "description": "具体某个子页面的签到功能。默认值: '无'。{options_text}"
+        }
+      },
+      "required": [
+        "app",
+        "page_type"
+      ]
+    }
+  },
+  {
+    "name": "open_favorite_goods",
+    "description": "打开商品收藏夹，并且使用筛选条件进行筛选 (该函数不涉及得物、转转)",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "app": {
+          "type": "string",
+          "description": "应用名称"
+        },
+        "filter_type": {
+          "type": "string",
+          "description": "商品收藏夹的筛选条件。默认值: '无'。{options_text}"
+        },
+        "order_type": {
+          "type": "string",
+          "description": "商品排列方式。默认值: '无'。{options_text}"
+        }
+      },
+      "required": [
+        "app",
+        "filter_type",
+        "order_type"
+      ]
+    }
+  },
+  {
+    "name": "open_favorite_stores",
+    "description": "打开店铺收藏夹，并且使用筛选条件进行筛选 (该函数不涉及其他9个app)",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "app": {
+          "type": "string",
+          "description": "应用名称"
+        },
+        "filter_type": {
+          "type": "string",
+          "description": "店铺收藏夹的筛选条件。默认值: '无'。{options_text}"
+        }
+      },
+      "required": [
+        "app",
+        "filter_type"
+      ]
+    }
+  },
+  {
+    "name": "search_in_favorite_goods",
+    "description": "打开商品收藏夹并按照内容进行搜索 (该函数只涉及淘宝、京东、天猫、闲鱼、阿里巴巴、唯品会、得物)",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "app": {
+          "type": "string",
+          "description": "应用名称"
+        },
+        "search_info": {
+          "type": "string",
+          "description": "搜索的具体内容"
+        }
+      },
+      "required": [
+        "app",
+        "search_info"
+      ]
+    }
+  },
+  {
+    "name": "search_in_favorite_stores",
+    "description": "打开店铺收藏夹并按照内容进行搜索 (该函数只涉及抖音、抖音极速版、拼多多、淘宝、京东、阿里巴巴)",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "app": {
+          "type": "string",
+          "description": "应用名称"
+        },
+        "search_info": {
+          "type": "string",
+          "description": "搜索的具体内容"
+        }
+      },
+      "required": [
+        "app",
+        "search_info"
+      ]
+    }
+  },
+  {
+    "name": "search_goods",
+    "description": "搜索商品",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "app": {
+          "type": "string",
+          "description": "应用名称"
+        },
+        "search_info": {
+          "type": "string",
+          "description": "搜索的具体内容"
+        },
+        "order_type": {
+          "type": "string",
+          "description": "搜索结果的排列方式。默认值: '无'。{options_text}"
+        }
+      },
+      "required": [
+        "app",
+        "search_info",
+        "order_type"
+      ]
+    }
+  },
+  {
+    "name": "search_stores",
+    "description": "搜索店铺 (该函数不涉及得物、闲鱼、转转、唯品会)",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "app": {
+          "type": "string",
+          "description": "应用名称"
+        },
+        "search_info": {
+          "type": "string",
+          "description": "搜索的具体内容"
+        },
+        "filter_type": {
+          "type": "string",
+          "description": "对搜索结果进行筛选的条件。默认值: '无'。{options_text}"
+        },
+        "order_type": {
+          "type": "string",
+          "description": "搜索结果的排列方式。默认值: '无'。{options_text}"
+        }
+      },
+      "required": [
+        "app",
+        "search_info",
+        "filter_type",
+        "order_type"
+      ]
+    }
+  },
+  {
+    "name": "open_search_history",
+    "description": "打开搜索历史 (该函数涉及全部14个app)",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "app": {
+          "type": "string",
+          "description": "应用名称"
+        }
+      },
+      "required": [
+        "app"
+      ]
+    }
+  },
+  {
+    "name": "delete_search_history",
+    "description": "清除搜索历史。危险操作，需进入一级页面后再次确认。(该函数涉及全部14个app)",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "app": {
+          "type": "string",
+          "description": "应用名称"
+        }
+      },
+      "required": [
+        "app"
+      ]
+    }
+  },
+  {
+    "name": "open_camera_search",
+    "description": "图片搜索，打开相机功能 (该函数不涉及转转)",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "app": {
+          "type": "string",
+          "description": "应用名称"
+        }
+      },
+      "required": [
+        "app"
+      ]
+    }
+  },
+  {
+    "name": "open_logistics_receive",
+    "description": "打开物流页面查询我购买物品的快递进程",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "app": {
+          "type": "string",
+          "description": "应用名称"
+        },
+        "filter_type": {
+          "type": "string",
+          "description": "依据物流情况进行筛选的条件。默认值: '无'。{options_text}"
+        }
+      },
+      "required": [
+        "app",
+        "filter_type"
+      ]
+    }
+  },
+  {
+    "name": "open_logistics_send",
+    "description": "打开物流页面查询我寄出物品的物流进程 (该函数不涉及其他10个app)",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "app": {
+          "type": "string",
+          "description": "应用名称"
+        },
+        "filter_type": {
+          "type": "string",
+          "description": "依据物流情况进行筛选的条件。默认值: '无'。{options_text}"
+        }
+      },
+      "required": [
+        "app",
+        "filter_type"
+      ]
+    }
+  },
+  {
+    "name": "open_express_delivery",
+    "description": "打开app的寄快递页面 (该函数只涉及京东)",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "app": {
+          "type": "string",
+          "description": "应用名称，仅限京东"
+        }
+      },
+      "required": [
+        "app"
+      ]
+    }
+  },
+  {
+    "name": "open_app",
+    "description": "打开指定的应用程序 (该函数涉及全部14个app)",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "app": {
+          "type": "string",
+          "description": "应用名称"
+        }
+      },
+      "required": [
+        "app"
+      ]
+    }
+  }
+]
