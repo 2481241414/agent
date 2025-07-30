@@ -497,24 +497,25 @@ def main():
     6. 使用最佳alpha进行一次完整的、详细的评测。
     7. 生成并打印最终的性能报告和错误案例分析。
     8. 将详细的召回结果保存到CSV文件。
+    9. 【新增】对指定的拒识指令进行专项测试。
     """
     # --- 0. 配置区域 ---
-    # annotated_data_file_path = '/home/workspace/lgq/shop/data/single_gt_output_with_plan.csv'
-    annotated_data_file_path = '/home/workspace/lgq/shop/data/single_gt_output_with_plan_0815.csv'
-    # annotated_data_file_path = '/home/workspace/lgq/shop/data/single_gt_output_with_plan_evel_rows_dataset.csv'
+    # 注意：请确保此处的路径在你的环境中是正确的
+    annotated_data_file_path = '/home/workspace/lgq/shop/data/single_gt_output_with_plan.csv'
     SEMANTIC_MODEL_NAME = '/home/workspace/lgq/shop/model/Qwen3-Embedding-0.6B'
-    # SEMANTIC_MODEL_NAME = '/home/workspace/ms-swift/output/Qwen3-Embedding-0.6B-sft/v1-20250729-021957/checkpoint-80'
     K_VALUES = [1, 2, 3, 5, 10]
     NUM_ERROR_EXAMPLES_TO_PRINT = 10
-    OUTPUT_FILE_PATH = '/home/workspace/lgq/shop/data/hybrid_recall_results_0815.csv' 
+    OUTPUT_FILE_PATH = '/home/workspace/lgq/shop/data/hybrid_recall_results.csv' 
 
     # --- 1. 数据加载 ---
     print("--- 步骤 1: 加载完整数据集 ---")
     try:
-        required_columns = ['query', '指令', 'plan（在xx中做什么）', 'ground_truth_tool']
-        data_df = pd.read_csv(annotated_data_file_path, usecols=required_columns).dropna().reset_index(drop=True)
+        # 注意: 你的拒识数据没有 '指令' 列，为了让主流程能跑通，我们只读取公共的列
+        # 在评测时，BM25和InstructionSearcher的构建仍依赖于这个有'指令'列的原始文件
+        required_columns = ['query', 'plan（在xx中做什么）', 'ground_truth_tool', '指令']
+        data_df = pd.read_csv(annotated_data_file_path, usecols=lambda c: c in required_columns).dropna(subset=['plan（在xx中做什么）']).reset_index(drop=True)
         # 内部嵌套函数，用于安全地解析字符串格式的列表
-        def parse_tools(s): return ast.literal_eval(s) if isinstance(s, str) else []
+        def parse_tools(s): return ast.literal_eval(s) if isinstance(s, str) and s.startswith('[') else []
         data_df['ground_truth_tool'] = data_df['ground_truth_tool'].apply(parse_tools)
         print(f"数据加载完成: 共 {len(data_df)} 条。\n")
     except FileNotFoundError:
@@ -528,6 +529,7 @@ def main():
     all_tools_definitions = get_exact_tool_definitions()
     
     init_start_time = time.time()
+    # 注意: 召回器的构建是基于你的原始训练数据的
     bm25_retriever = BM25Retriever(data_df, all_tools_definitions)
     instruction_searcher = InstructionSearcher(data_df, all_tools_definitions, model_name=SEMANTIC_MODEL_NAME)
     init_end_time = time.time()
@@ -632,6 +634,93 @@ def main():
 
     except Exception as e:
         print(f"❌ 保存召回结果失败: {e}")
+    print("-" * 70)
+    
+    # --- 步骤 9: 拒识能力专项测试 ---
+    # 定义你想要测试的拒识数据集
+    rejection_test_data = {
+        'query': [
+            '放一首晴天',
+            '用滴滴帮我叫个快车',
+            '嘿Siri，帮我看一下外面天气怎么样',
+            '帮我订张去南京的机票',
+            '打开高德，我要导航去景德镇玩'
+        ],
+        'plan（在xx中做什么）': [
+            '在$$中播放晴天',
+            '在$滴滴$中叫个快车',
+            '在$$中查天气',
+            '在$$中订一张去南京的机票',
+            '在$高德$中导航到景德镇'
+        ]
+    }
+    rejection_df = pd.DataFrame(rejection_test_data)
+    queries_for_rejection_test = rejection_df['plan（在xx中做什么）'].tolist()
+
+    # 调用测试函数
+    test_rejection_queries(
+        queries_to_test=queries_for_rejection_test,
+        bm25_retriever=bm25_retriever,
+        instruction_searcher=instruction_searcher,
+        all_tools_definitions=all_tools_definitions,
+        alpha=best_alpha, # 使用前面找到的最佳alpha
+        top_k=5
+    )
+
+
+# ==============================================================================
+# 【新增】区域 7: 拒识能力专项测试函数
+# ==============================================================================
+def test_rejection_queries(queries_to_test: list, bm25_retriever: BM25Retriever, instruction_searcher: InstructionSearcher, all_tools_definitions: list, alpha: float, top_k: int = 5):
+    """
+    对一组给定的“拒识”查询进行测试，并打印出每个查询的Top-K召回结果。
+    这个函数专门用于检验模型对于领域外指令的反应。
+
+    Args:
+        queries_to_test (list): 一个包含领域外查询字符串的列表 (通常是'plan'列的内容)。
+        bm25_retriever (BM25Retriever): 已经初始化并训练好的BM25召回器。
+        instruction_searcher (InstructionSearcher): 已经初始化并加载好索引的意图搜索器。
+        all_tools_definitions (list): 全局工具定义列表。
+        alpha (float): 用于融合分数的最佳权重。
+        top_k (int, optional): 为每个查询显示的最高分结果数量。默认为5。
+    """
+    print(f"\n\n--- 步骤 9: 开始进行拒识能力专项测试 ---")
+    print("-" * 70)
+
+    # 内部嵌套函数，用于分数归一化
+    def normalize(scores):
+        min_s, max_s = scores.min(), scores.max()
+        if (max_s - min_s) == 0: return np.zeros_like(scores)
+        return (scores - min_s) / (max_s - min_s)
+
+    for i, query in enumerate(queries_to_test):
+        if not query or pd.isna(query):
+            print(f"\n--- 测试查询 {i+1} (已跳过, 输入为空) ---")
+            continue
+
+        print(f"\n--- 测试查询 {i+1}: \"{query}\" ---")
+
+        # 1. 获取两路得分
+        bm25_scores = bm25_retriever.retrieve_scores(query)
+        semantic_scores = instruction_searcher.retrieve_scores(query)
+
+        # 2. 归一化与融合
+        norm_bm25 = normalize(bm25_scores)
+        norm_semantic = normalize(semantic_scores)
+        final_scores = alpha * norm_bm25 + (1 - alpha) * norm_semantic
+
+        # 3. 排序并获取Top-K结果
+        sorted_indices = np.argsort(final_scores)[::-1]
+        retrieved_tools = [all_tools_definitions[idx] for idx in sorted_indices[:top_k]]
+        retrieved_scores = final_scores[sorted_indices[:top_k]]
+
+        # 4. 打印结果
+        print("模型召回的Top-5工具及其分数:")
+        if not retrieved_tools:
+            print("  -> 模型没有返回任何结果。")
+        else:
+            for rank, (tool, score) in enumerate(zip(retrieved_tools, retrieved_scores)):
+                print(f"  Rank {rank+1}: {tool.get('name', 'N/A')} (Score: {score:.4f})")
     print("-" * 70)
 
 

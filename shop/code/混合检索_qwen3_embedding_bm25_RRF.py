@@ -25,22 +25,12 @@ except ImportError as e:
     exit()
 
 # ==============================================================================
-# 区域 2: 召回器类定义
+# 区域 2: 召回器类定义 (无变化)
 # ==============================================================================
 
 class BM25Retriever:
     """【关键词通路】BM25召回器，专注于关键词和用户多样化表达的匹配。"""
     def __init__(self, data_df: pd.DataFrame, all_tools_definitions: list, k1=1.5, b=0.75):
-        """
-        初始化BM25召回器。
-        这个过程会构建一个基于关键词的索引，该索引将每个工具与一组相关的用户查询指令关联起来。
-
-        Args:
-            data_df (pd.DataFrame): 包含'指令'和'ground_truth_tool'列的标注数据。
-            all_tools_definitions (list): 所有可用工具的定义列表。
-            k1 (float, optional): BM25算法的参数k1。默认为1.5。
-            b (float, optional): BM25算法的参数b。默认为0.75。
-        """
         self.definitions = all_tools_definitions
         self.tool_name_to_idx = {tool['name']: i for i, tool in enumerate(all_tools_definitions)}
         self._add_jieba_words()
@@ -52,10 +42,6 @@ class BM25Retriever:
         print("--- [BM25通路] 召回器构建完成 ---")
 
     def _add_jieba_words(self):
-        """
-        向Jieba分词器添加自定义词典。
-        这包括所有工具的名称和一些领域内的核心词汇，以确保它们在分词时被视为一个整体，提高匹配准确率。
-        """
         for tool in self.definitions:
             jieba.add_word(tool.get('name', '').split('(')[0], freq=100)
         core_words = ["购物车", "采购车", "待收货", "待付款", "收藏夹", "发票", "优惠券"]
@@ -63,16 +49,6 @@ class BM25Retriever:
             jieba.add_word(word, freq=100)
 
     def _build_keyword_rich_corpus(self, data_df: pd.DataFrame) -> list:
-        """
-        构建一个为BM25优化的“关键词丰富”语料库。
-        语料库中的每个文档对应一个工具。该文档由所有指向此工具的、去重后的用户'指令'文本拼接而成。
-        
-        Args:
-            data_df (pd.DataFrame): 包含'指令'和'ground_truth_tool'列的标注数据。
-
-        Returns:
-            list: 一个字符串列表，每个字符串是对应工具的关键词文档。
-        """
         tool_text_aggregator = defaultdict(list)
         for _, row in data_df.iterrows():
             if not isinstance(row.get('ground_truth_tool'), list) or not row['ground_truth_tool']: continue
@@ -90,15 +66,6 @@ class BM25Retriever:
         return corpus
 
     def retrieve_scores(self, query: str) -> np.ndarray:
-        """
-        针对给定的查询，计算其与所有工具文档的BM25分数。
-
-        Args:
-            query (str): 用户的输入查询（通常是'plan'）。
-
-        Returns:
-            np.ndarray: 一个数组，包含查询与每个工具的BM25相似度分数。
-        """
         tokenized_query = jieba.lcut(query, cut_all=False)
         return self.bm25.get_scores(tokenized_query)
 
@@ -106,15 +73,6 @@ class BM25Retriever:
 class InstructionSearcher:
     """【精准意图通路】使用Qwen3+Faiss在“指令”空间中进行语义搜索。"""
     def __init__(self, data_df: pd.DataFrame, all_tools_definitions: list, model_name: str):
-        """
-        初始化精准意图搜索器。
-        这个过程会加载一个语义模型，将数据集中所有唯一的'指令'编码为向量，并构建一个Faiss索引用于快速的向量相似度搜索。
-
-        Args:
-            data_df (pd.DataFrame): 包含'指令'和'ground_truth_tool'列的标注数据。
-            all_tools_definitions (list): 所有可用工具的定义列表。
-            model_name (str): SentenceTransformer模型的名称或本地路径。
-        """
         self.definitions = all_tools_definitions
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         print(f"--- [意图通路] 正在使用设备: {self.device} ---")
@@ -130,13 +88,6 @@ class InstructionSearcher:
         print("--- [意图通路] Qwen3+Faiss召回器准备就绪 ---\n")
 
     def _build_mappings(self, data_df: pd.DataFrame):
-        """
-        构建从唯一'指令'到其对应工具的映射关系。
-        同时，创建工具名称到其在全局工具列表中索引的映射。
-
-        Args:
-            data_df (pd.DataFrame): 标注数据。
-        """
         self.instruction_to_tool_map = {}
         for _, row in data_df.drop_duplicates(subset=['指令'], keep='last').iterrows():
             if pd.notna(row['指令']) and isinstance(row.get('ground_truth_tool'), list) and row['ground_truth_tool']:
@@ -146,13 +97,6 @@ class InstructionSearcher:
         self.tool_name_to_idx = {tool['name']: i for i, tool in enumerate(self.definitions)}
 
     def _build_faiss_index(self, embeddings: np.ndarray):
-        """
-        使用给定的向量构建一个Faiss索引。
-        这里使用IndexFlatIP（内积）作为相似度度量，并对向量进行L2归一化，使得内积等价于余弦相似度。
-
-        Args:
-            embeddings (np.ndarray): 从'指令'文本编码而来的向量矩阵。
-        """
         embeddings = embeddings.astype('float32')
         embedding_dim = embeddings.shape[1]
         self.faiss_index = faiss.IndexFlatIP(embedding_dim)
@@ -160,16 +104,6 @@ class InstructionSearcher:
         self.faiss_index.add(embeddings)
 
     def retrieve_scores(self, plan_query: str) -> np.ndarray:
-        """
-        对给定的查询进行语义搜索，并返回所有工具的分数。
-        过程：编码查询 -> 在Faiss中搜索最相似的K个'指令' -> 将这些'指令'的相似度分数传递给它们对应的工具。
-
-        Args:
-            plan_query (str): 用户的输入查询（通常是'plan'）。
-
-        Returns:
-            np.ndarray: 一个数组，包含查询与每个工具的最高语义相似度分数。
-        """
         query_embedding = self.model.encode(plan_query, convert_to_tensor=False)
         query_embedding_np = np.array([query_embedding], dtype='float32')
         faiss.normalize_L2(query_embedding_np)
@@ -191,34 +125,13 @@ class InstructionSearcher:
         return tool_scores
 
 # ==============================================================================
-# 区域 3: 评测函数
+# 区域 3: 评测函数 (无变化)
 # ==============================================================================
 def _get_tool_names(tools: list) -> set:
-    """
-    一个辅助函数，从工具定义列表（例如ground truth或retrieved列表）中提取所有工具的名称。
-
-    Args:
-        tools (list): 一个包含工具定义字典的列表。
-
-    Returns:
-        set: 一个包含所有工具名称的集合，便于快速查找。
-    """
     if not isinstance(tools, list): return set()
     return {tool.get('name') for tool in tools}
 
 def calculate_recall_at_k(retrieved: list, ground_truth: list, k: int) -> float:
-    """
-    计算Recall@K指标。
-    衡量在前K个召回结果中，命中了多少比例的真实相关工具。
-
-    Args:
-        retrieved (list): 按分数排序的召回工具列表。
-        ground_truth (list): 真实的工具列表。
-        k (int): 截断位置。
-
-    Returns:
-        float: Recall@K的分数 (0.0到1.0)。
-    """
     if not ground_truth: return 1.0
     retrieved_names_at_k = _get_tool_names(retrieved[:k])
     ground_truth_names = _get_tool_names(ground_truth)
@@ -226,36 +139,12 @@ def calculate_recall_at_k(retrieved: list, ground_truth: list, k: int) -> float:
     return len(retrieved_names_at_k.intersection(ground_truth_names)) / len(ground_truth_names)
 
 def calculate_completeness_at_k(retrieved: list, ground_truth: list, k: int) -> float:
-    """
-    计算Completeness@K（完备率）指标。
-    衡量在前K个召回结果中，是否召回了**所有**真实相关的工具。这是一个比Recall更严格的指标。
-
-    Args:
-        retrieved (list): 按分数排序的召回工具列表。
-        ground_truth (list): 真实的工具列表。
-        k (int): 截断位置。
-
-    Returns:
-        float: 如果所有真实工具都被召回则为1.0，否则为0.0。
-    """
     if not ground_truth: return 1.0
     retrieved_names_at_k = _get_tool_names(retrieved[:k])
     ground_truth_names = _get_tool_names(ground_truth)
     return 1.0 if ground_truth_names.issubset(retrieved_names_at_k) else 0.0
 
 def calculate_ndcg_at_k(retrieved: list, ground_truth: list, k: int) -> float:
-    """
-    计算NDCG@K (Normalized Discounted Cumulative Gain) 指标。
-    衡量排序质量，越相关的结果排在越前面，得分越高。
-
-    Args:
-        retrieved (list): 按分数排序的召回工具列表。
-        ground_truth (list): 真实的工具列表。
-        k (int): 截断位置。
-
-    Returns:
-        float: NDCG@K的分数 (0.0到1.0)。
-    """
     ground_truth_names = _get_tool_names(ground_truth)
     if not ground_truth_names: return 1.0
     dcg = sum(1.0 / math.log2(i + 2) for i, tool in enumerate(retrieved[:k]) if tool.get('name') in ground_truth_names)
@@ -263,34 +152,10 @@ def calculate_ndcg_at_k(retrieved: list, ground_truth: list, k: int) -> float:
     return dcg / idcg if idcg > 0 else 0.0
 
 def calculate_hit_ratio_at_k(retrieved: list, ground_truth: list, k: int) -> float:
-    """
-    计算Hit Ratio@K (命中率) 指标。
-    衡量在前K个召回结果中，是否**至少命中一个**真实相关的工具。
-
-    Args:
-        retrieved (list): 按分数排序的召回工具列表。
-        ground_truth (list): 真实的工具列表。
-        k (int): 截断位置。
-
-    Returns:
-        float: 如果至少命中一个则为1.0，否则为0.0。
-    """
     retrieved_names = _get_tool_names(retrieved[:k])
     return 1.0 if retrieved_names & _get_tool_names(ground_truth) else 0.0
 
 def calculate_average_precision_at_k(retrieved: list, ground_truth: list, k: int) -> float:
-    """
-    计算Average Precision@K (AP@K) 指标。
-    MAP@K (Mean Average Precision)的基础，综合考虑了排序位置和召回率。
-
-    Args:
-        retrieved (list): 按分数排序的召回工具列表。
-        ground_truth (list): 真实的工具列表。
-        k (int): 截断位置。
-
-    Returns:
-        float: AP@K的分数。
-    """
     gt_names = _get_tool_names(ground_truth)
     if not gt_names: return 1.0
     hit_count = 0
@@ -302,18 +167,6 @@ def calculate_average_precision_at_k(retrieved: list, ground_truth: list, k: int
     return sum_prec / len(gt_names) if gt_names else 0.0
 
 def calculate_mrr_at_k(retrieved: list, ground_truth: list, k: int) -> float:
-    """
-    计算Mean Reciprocal Rank@K (MRR@K) 指标。
-    衡量第一个正确答案被排在第几位。其值为第一个正确答案排名的倒数。
-
-    Args:
-        retrieved (list): 按分数排序的召回工具列表。
-        ground_truth (list): 真实的工具列表。
-        k (int): 截断位置。
-
-    Returns:
-        float: MRR@K的分数。
-    """
     gt_names = _get_tool_names(ground_truth)
     for i, tool in enumerate(retrieved[:k]):
         if tool.get('name') in gt_names:
@@ -321,18 +174,6 @@ def calculate_mrr_at_k(retrieved: list, ground_truth: list, k: int) -> float:
     return 0.0
 
 def calculate_auc_for_query(all_scores: np.ndarray, tool_defs: list, ground_truth: list) -> float:
-    """
-    为单次查询计算AUC (Area Under the ROC Curve) 分数。
-    衡量模型将正样本（相关工具）排在负样本（不相关工具）前面的整体能力。
-
-    Args:
-        all_scores (np.ndarray): 模型对所有工具给出的分数数组。
-        tool_defs (list): 全局工具定义列表。
-        ground_truth (list): 真实的工具列表。
-
-    Returns:
-        float: AUC分数。如果标签只有一类，则返回0.5。
-    """
     gt_names = _get_tool_names(ground_truth)
     labels = [1 if t['name'] in gt_names else 0 for t in tool_defs]
     try:
@@ -341,7 +182,7 @@ def calculate_auc_for_query(all_scores: np.ndarray, tool_defs: list, ground_trut
     except ValueError: return 0.5
 
 # ==============================================================================
-# 区域 4: 工具定义
+# 区域 4: 工具定义 (无变化)
 # ==============================================================================
 def get_exact_tool_definitions() -> list:
     """
@@ -353,6 +194,7 @@ def get_exact_tool_definitions() -> list:
         list: 一个包含多个字典的列表，每个字典代表一个工具，包含'name'和'description'。
     """
     tools = [
+        # ... (工具列表内容保持不变)
         {"name": "search_goods(app, search_info_slot, page_type, filter_detail_slot, type_slot, area_slot, order_type)", "description": "在app程序中依据名称搜索商品,可以指定具体在哪一个子页面进行搜索, 搜索结果的筛选条件和排序方式"},
         {"name": "search_stores(app, search_info_slot, filter_type, filter_detail_slot, location_slot, qualification_slot, order_type)", "description": "在app程序中依据名称搜索店铺,可以使用筛选器限制搜索结果,也可以指定搜索结果的排序方式"},
         {"name": "open_search_history(app)", "description": "打开app程序的搜索历史界面"},
@@ -397,36 +239,58 @@ def get_exact_tool_definitions() -> list:
 # ==============================================================================
 # 区域 5: 评测核心逻辑 
 # ==============================================================================
-def evaluate_recall_system(data_df, all_bm25_scores, all_semantic_scores, all_tools_definitions, alpha, k_values, full_report=False):
+
+# 【修改点】: 新增 RRF 融合函数
+def fuse_with_rrf(score_arrays: list, rrf_k: int = 60) -> np.ndarray:
+    """
+    使用倒数排名融合 (Reciprocal Rank Fusion) 来融合多个分数数组。
+    该方法与原始分数的大小无关，只关心排名，因此更加鲁棒。
+
+    Args:
+        score_arrays (list): 一个包含多个 numpy 分数数组的列表，每个数组代表一个召回器的结果。
+        rrf_k (int, optional): RRF中的平滑常数。默认为 60。
+
+    Returns:
+        np.ndarray: 融合后的最终分数数组。
+    """
+    if not score_arrays:
+        return np.array([])
+    
+    num_tools = score_arrays[0].shape[0]
+    final_scores = np.zeros(num_tools)
+    
+    # 遍历每一个召回器的分数数组
+    for scores in score_arrays:
+        # 使用 argsort 两次是获取 rank 的常用技巧。
+        # ranks 从 0 开始，所以我们需要 +1 使其从 1 开始。
+        ranks = np.argsort(np.argsort(scores)[::-1]) + 1
+        
+        # 计算当前召回器的 RRF 分数并累加到总分
+        rrf_scores = 1 / (rrf_k + ranks)
+        final_scores += rrf_scores
+        
+    return final_scores
+
+# 【修改点】: 修改评测主函数，移除 alpha 参数，使用 RRF 融合
+def evaluate_recall_system(data_df, all_bm25_scores, all_semantic_scores, all_tools_definitions, k_values):
     """
     对整个数据集进行一次完整的评测。
-    此函数会遍历数据集中的每一行，融合BM25和语义分数，计算各项评测指标。
+    此函数会遍历数据集中的每一行，使用 RRF 融合 BM25 和语义分数，计算各项评测指标。
 
     Args:
         data_df (pd.DataFrame): 完整的评测数据集。
         all_bm25_scores (list): 预计算好的所有查询的BM25分数列表。
         all_semantic_scores (list): 预计算好的所有查询的语义分数列表。
         all_tools_definitions (list): 全局工具定义列表。
-        alpha (float): BM25分数的权重，范围[0, 1]。语义分数的权重为(1-alpha)。
         k_values (list): 一个包含多个k值的列表 (例如 [1, 3, 5])，用于计算@K指标。
-        full_report (bool, optional): 控制返回内容的详细程度。
-            - 如果为 True，返回详细的评测结果、错误案例、时延记录和预测详情。
-            - 如果为 False（默认），仅返回平均Recall@1分数，用于快速的网格搜索。
 
     Returns:
-        - if full_report: (results, error_cases, latency_records, detailed_predictions)
-        - if not full_report: float (mean Recall@1 score)
+        (results, error_cases, latency_records, detailed_predictions)
     """
     results = defaultdict(lambda: defaultdict(list))
     error_cases = []
     latency_records = []
     detailed_predictions = [] 
-
-    # 内部嵌套函数，用于分数归一化
-    def normalize(scores):
-        min_s, max_s = scores.min(), scores.max()
-        if (max_s - min_s) == 0: return np.zeros_like(scores)
-        return (scores - min_s) / (max_s - min_s)
 
     for i, (_, row) in enumerate(data_df.iterrows()):
         start_time = time.time()
@@ -435,10 +299,8 @@ def evaluate_recall_system(data_df, all_bm25_scores, all_semantic_scores, all_to
         bm25_scores = all_bm25_scores[i]
         semantic_scores = all_semantic_scores[i]
         
-        # 归一化与融合
-        norm_bm25 = normalize(bm25_scores)
-        norm_semantic = normalize(semantic_scores)
-        final_scores = alpha * norm_bm25 + (1 - alpha) * norm_semantic
+        # 【修改点】: 移除归一化和加权融合，替换为 RRF 融合
+        final_scores = fuse_with_rrf([bm25_scores, semantic_scores])
         
         # 排序并获取召回结果
         sorted_indices = np.argsort(final_scores)[::-1]
@@ -448,42 +310,35 @@ def evaluate_recall_system(data_df, all_bm25_scores, all_semantic_scores, all_to
         end_time = time.time()
         latency_records.append(end_time - start_time)
 
-        if full_report:
-            # 记录详细的预测信息
-            prediction_record = {
-                "query": row['query'],
-                "plan": row['plan（在xx中做什么）'],
-                "ground_truth": [_get_tool_names(ground_truth)],
-                "retrieved_top_k": [{"tool": t.get('name'), "score": float(s)} for t, s in zip(retrieved[:max(k_values)], retrieved_scores[:max(k_values)])]
-            }
-            detailed_predictions.append(prediction_record)
+        # 记录详细的预测信息
+        prediction_record = {
+            "query": row['query'],
+            "plan": row['plan（在xx中做什么）'],
+            "ground_truth": [_get_tool_names(ground_truth)],
+            "retrieved_top_k": [{"tool": t.get('name'), "score": float(s)} for t, s in zip(retrieved[:max(k_values)], retrieved_scores[:max(k_values)])]
+        }
+        detailed_predictions.append(prediction_record)
 
-            # 计算所有指标
-            for k in k_values:
-                results['Recall@K'][k].append(calculate_recall_at_k(retrieved, ground_truth, k))
-                results['HR@K'][k].append(calculate_hit_ratio_at_k(retrieved, ground_truth, k))
-                results['MAP@K'][k].append(calculate_average_precision_at_k(retrieved, ground_truth, k))
-                results['MRR@K'][k].append(calculate_mrr_at_k(retrieved, ground_truth, k))
-                results['NDCG@K'][k].append(calculate_ndcg_at_k(retrieved, ground_truth, k))
-                results['COMP@K'][k].append(calculate_completeness_at_k(retrieved, ground_truth, k))
-            results['AUC']['all'].append(calculate_auc_for_query(final_scores, all_tools_definitions, ground_truth))
+        # 计算所有指标
+        for k in k_values:
+            results['Recall@K'][k].append(calculate_recall_at_k(retrieved, ground_truth, k))
+            results['HR@K'][k].append(calculate_hit_ratio_at_k(retrieved, ground_truth, k))
+            results['MAP@K'][k].append(calculate_average_precision_at_k(retrieved, ground_truth, k))
+            results['MRR@K'][k].append(calculate_mrr_at_k(retrieved, ground_truth, k))
+            results['NDCG@K'][k].append(calculate_ndcg_at_k(retrieved, ground_truth, k))
+            results['COMP@K'][k].append(calculate_completeness_at_k(retrieved, ground_truth, k))
+        results['AUC']['all'].append(calculate_auc_for_query(final_scores, all_tools_definitions, ground_truth))
+        
+        # 记录错误案例
+        if calculate_recall_at_k(retrieved, ground_truth, 1) < 1.0:
+            gt_name = _get_tool_names(ground_truth).pop() if ground_truth else "N/A"
+            pred_name_top1 = retrieved[0].get('name') if retrieved else "N/A"
+            error_cases.append({"Query": row['plan（在xx中做什么）'], "Ground Truth": [gt_name], "Prediction@1": [pred_name_top1], "Prediction@5": [r.get('name') for r in retrieved[:5]]})
             
-            # 记录错误案例
-            if calculate_recall_at_k(retrieved, ground_truth, 1) < 1.0:
-                gt_name = _get_tool_names(ground_truth).pop() if ground_truth else "N/A"
-                pred_name_top1 = retrieved[0].get('name') if retrieved else "N/A"
-                error_cases.append({"Query": row['plan（在xx中做什么）'], "Ground Truth": [gt_name], "Prediction@1": [pred_name_top1], "Prediction@5": [r.get('name') for r in retrieved[:5]]})
-        else:
-            # 快速模式，只计算Recall@1
-            results['Recall@K'][1].append(calculate_recall_at_k(retrieved, ground_truth, 1))
-
-    if full_report:
-        return results, error_cases, latency_records, detailed_predictions
-    else:
-        return np.mean(results['Recall@K'][1])
+    return results, error_cases, latency_records, detailed_predictions
 
 # ==============================================================================
-# 区域 6: 主程序 (集成网格搜索) 
+# 区域 6: 主程序
 # ==============================================================================
 def main():
     """
@@ -493,27 +348,23 @@ def main():
     2. 加载和预处理数据。
     3. 初始化两个召回器（BM25 和 InstructionSearcher）。
     4. 预计算所有查询的分数以加速后续步骤。
-    5. 通过网格搜索寻找最佳的融合权重alpha。
-    6. 使用最佳alpha进行一次完整的、详细的评测。
+    5. 【已移除】原有的Alpha网格搜索步骤。
+    6. 使用 RRF 融合进行一次完整的、详细的评测。
     7. 生成并打印最终的性能报告和错误案例分析。
     8. 将详细的召回结果保存到CSV文件。
     """
     # --- 0. 配置区域 ---
-    # annotated_data_file_path = '/home/workspace/lgq/shop/data/single_gt_output_with_plan.csv'
     annotated_data_file_path = '/home/workspace/lgq/shop/data/single_gt_output_with_plan_0815.csv'
-    # annotated_data_file_path = '/home/workspace/lgq/shop/data/single_gt_output_with_plan_evel_rows_dataset.csv'
     SEMANTIC_MODEL_NAME = '/home/workspace/lgq/shop/model/Qwen3-Embedding-0.6B'
-    # SEMANTIC_MODEL_NAME = '/home/workspace/ms-swift/output/Qwen3-Embedding-0.6B-sft/v1-20250729-021957/checkpoint-80'
     K_VALUES = [1, 2, 3, 5, 10]
     NUM_ERROR_EXAMPLES_TO_PRINT = 10
-    OUTPUT_FILE_PATH = '/home/workspace/lgq/shop/data/hybrid_recall_results_0815.csv' 
+    OUTPUT_FILE_PATH = '/home/workspace/lgq/shop/data/rrf_recall_results.csv' 
 
     # --- 1. 数据加载 ---
     print("--- 步骤 1: 加载完整数据集 ---")
     try:
         required_columns = ['query', '指令', 'plan（在xx中做什么）', 'ground_truth_tool']
         data_df = pd.read_csv(annotated_data_file_path, usecols=required_columns).dropna().reset_index(drop=True)
-        # 内部嵌套函数，用于安全地解析字符串格式的列表
         def parse_tools(s): return ast.literal_eval(s) if isinstance(s, str) else []
         data_df['ground_truth_tool'] = data_df['ground_truth_tool'].apply(parse_tools)
         print(f"数据加载完成: 共 {len(data_df)} 条。\n")
@@ -534,8 +385,8 @@ def main():
     print(f"\n--- [计时] 初始化所有召回器总耗时: {init_end_time - init_start_time:.2f} 秒 ---\n")
 
     
-    # --- 3. 计算所有分数以加速网格搜索 ---
-    print("\n--- 步骤 3: 计算所有召回分数以加速网格搜索 ---")
+    # --- 3. 预计算所有召回分数 ---
+    print("\n--- 步骤 3: 预计算所有召回分数 ---")
     bm25_start_time = time.time()
     all_bm25_scores = [bm25_retriever.retrieve_scores(row['plan（在xx中做什么）']) for _, row in tqdm(data_df.iterrows(), total=len(data_df), desc="计算BM25分数")]
     bm25_end_time = time.time()
@@ -553,29 +404,15 @@ def main():
     print(f"  精准意图通路平均时延: {avg_semantic_latency:.4f} 毫秒/查询")
     print("-" * 30)
 
-    # --- 4. Alpha值网格搜索 ---
-    print("\n--- 步骤 4: 开始进行Alpha值网格搜索 ---")
-    alpha_range = np.linspace(0, 1, 101)
-    best_alpha = -1
-    best_score = -1
-    
-    for alpha in tqdm(alpha_range, desc="Alpha网格搜索中"):
-        current_score = evaluate_recall_system(data_df, all_bm25_scores, all_semantic_scores, all_tools_definitions, alpha, K_VALUES)
-        if current_score > best_score:
-            best_score = current_score
-            best_alpha = alpha
-
-    print("\n--- Alpha值网格搜索完成 ---")
-    print(f"找到的最佳Alpha值: {best_alpha:.2f} (对应的最高平均Recall@1为: {best_score:.4f})")
-    
-    # --- 5. 使用最佳Alpha进行最终的、完整的评测 ---
-    print(f"\n--- 步骤 5: 使用最佳Alpha={best_alpha:.2f}进行最终的完整评测 ---")
+    # 【修改点】: 移除步骤4（Alpha网格搜索），直接进入最终评测
+    # --- 4. 使用 RRF 融合进行最终的、完整的评测 ---
+    print(f"\n--- 步骤 4: 使用 RRF 融合进行最终的完整评测 ---")
     results, error_cases, latency_records, detailed_predictions = evaluate_recall_system(
-        data_df, all_bm25_scores, all_semantic_scores, all_tools_definitions, best_alpha, K_VALUES, full_report=True
+        data_df, all_bm25_scores, all_semantic_scores, all_tools_definitions, K_VALUES
     )
     
-    # --- 6. 汇总并报告最终结果 ---
-    print("\n\n--- 步骤 6: 最终评测结果报告 (使用最佳Alpha) ---")
+    # --- 5. 汇总并报告最终结果 ---
+    print("\n\n--- 步骤 5: 最终评测结果报告 (使用RRF融合) ---")
     final_scores_report = {}
     for metric, vals in results.items():
         if metric == 'AUC': 
@@ -588,15 +425,15 @@ def main():
     
     average_latency_ms = np.mean(latency_records) * 1000
 
-    print("混合召回模型 (BM25 + 精准意图) 在完整数据集上的评测结果:")
+    print("混合召回模型 (BM25 + 精准意图, RRF融合) 在完整数据集上的评测结果:")
     print("-" * 70)
     print(report_df.to_string(formatters={col: '{:.4f}'.format for col in report_df.columns}))
     print(f"\n**AUC (全量排序 ROC AUC)**: {final_scores_report['AUC']:.4f}")
-    print(f"**平均查询处理时延 (分数融合+排序)**: {average_latency_ms:.4f} 毫秒/查询")
+    print(f"**平均查询处理时延 (RRF融合+排序)**: {average_latency_ms:.4f} 毫秒/查询")
     print("-" * 70)
     
-    # --- 7. 打印错误分析报告 ---
-    print(f"\n\n--- 步骤 7: Top-1 错误案例分析 (共 {len(error_cases)} 个错误) ---")
+    # --- 6. 打印错误分析报告 ---
+    print(f"\n\n--- 步骤 6: Top-1 错误案例分析 (共 {len(error_cases)} 个错误) ---")
     if not error_cases:
         print("🎉 恭喜！在数据集上没有发现 Top-1 错误案例！")
     else:
@@ -610,8 +447,8 @@ def main():
             print(f"\n... (仅显示前 {NUM_ERROR_EXAMPLES_TO_PRINT} 个错误案例) ...")
     print("-" * 70)
 
-    # --- 步骤 8: 保存召回结果到文件 ---
-    print(f"\n\n--- 步骤 8: 保存详细召回结果到文件 ---")
+    # --- 步骤 7: 保存召回结果到文件 ---
+    print(f"\n\n--- 步骤 7: 保存详细召回结果到文件 ---")
     try:
         output_records = []
         for pred in detailed_predictions:
