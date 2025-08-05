@@ -1,4 +1,3 @@
-# 区域1, 3, 4, 5 的代码保持您原来的版本，此处省略...
 import pandas as pd
 import os
 import json
@@ -15,7 +14,7 @@ import jieba
 # 区域 1: 检查并导入所需库 (新增 aiohttp 和 asyncio)
 # ==============================================================================
 try:
-    from sentence_transformers import SentenceTransformer # 保留用于对比
+    from sentence_transformers import SentenceTransformer 
     import torch
     import faiss
     from rank_bm25 import BM25Okapi
@@ -32,7 +31,6 @@ except ImportError as e:
 # ==============================================================================
 
 class BM25Retriever:
-    # ... (这部分代码保持不变) ...
     """【关键词通路】BM25召回器，专注于关键词和用户多样化表达的匹配。"""
     def __init__(self, data_df: pd.DataFrame, all_tools_definitions: list, k1=1.5, b=0.75):
         self.definitions = all_tools_definitions
@@ -67,19 +65,19 @@ class BM25Retriever:
             aggregated_text = ' '.join(set(tool_text_aggregator.get(tool_name, [])))
             document = f"{aggregated_text}"
             corpus[tool_idx] = document
+            # print(corpus)
         return corpus
 
     def retrieve_scores(self, query: str) -> np.ndarray:
         tokenized_query = jieba.lcut(query, cut_all=False)
+        # print(tokenized_query)
         return self.bm25.get_scores(tokenized_query)
 
 
-# --- 【核心修改】重构InstructionSearcher以支持两种模式 ---
 class InstructionSearcher:
     """
     【精准意图通路】支持本地加载或API调用两种模式，以统一向量化方式。
     """
-    # 【修改】增加 api_concurrency_limit 参数
     def __init__(self, data_df: pd.DataFrame, all_tools_definitions: list, mode: str, model_path_or_name: str, api_url: str = None, api_concurrency_limit: int = 10):
         self.definitions = all_tools_definitions
         self.mode = mode
@@ -87,7 +85,6 @@ class InstructionSearcher:
         self.api_url = api_url
         self.model = None # 用于本地模式
         self.faiss_index = None
-        # 【新增】保存并发限制阈值
         self.api_concurrency_limit = api_concurrency_limit
 
         print(f"--- [意图通路] 模式: {self.mode.upper()} ---")
@@ -97,7 +94,6 @@ class InstructionSearcher:
             print(f"--- [意图通路] 正在加载本地语义模型: {self.model_path_or_name} ---")
             self.model = SentenceTransformer(self.model_path_or_name, trust_remote_code=True, device=self.device)
         elif self.mode == 'api':
-             # 【新增】在API模式下打印并发阈值信息
             print(f"--- [意图通路] API并发请求阈值设置为: {self.api_concurrency_limit} ---")
         else:
             raise ValueError("模式 (mode) 必须是 'local' 或 'api'")
@@ -112,6 +108,32 @@ class InstructionSearcher:
         self.unique_instructions = list(self.instruction_to_tool_map.keys())
         self.tool_name_to_idx = {tool['name']: i for i, tool in enumerate(self.definitions)}
 
+    # def _build_faiss_index(self, embeddings: np.ndarray):
+    #     embeddings = embeddings.astype('float32')
+    #     embedding_dim = embeddings.shape[1]
+        
+    #     # --- 原有代码 ---
+    #     # self.faiss_index = faiss.IndexFlatIP(embedding_dim)
+    #     # faiss.normalize_L2(embeddings)
+    #     # self.faiss_index.add(embeddings)
+
+    #     # --- 替换为 IndexIVFFlat ---
+    #     nlist = 1024  # 划分的区域数量，经验值是向量总数的平方根附近
+    #     quantizer = faiss.IndexFlatIP(embedding_dim) # 用一个精确索引来定义区域中心
+        
+    #     # 使用内积作为度量
+    #     self.faiss_index = faiss.IndexIVFFlat(quantizer, embedding_dim, nlist, faiss.METRIC_INNER_PRODUCT)
+
+    #     faiss.normalize_L2(embeddings) # 归一化依然重要
+
+    #     print("--- [意图通路] 正在训练IVF索引... ---")
+    #     self.faiss_index.train(embeddings)
+    #     print("--- [意图通路] 训练完成，正在添加向量... ---")
+    #     self.faiss_index.add(embeddings)
+        
+    #     # 在搜索时，需要设置 nprobe 参数
+    #     self.faiss_index.nprobe = 10 # 每次搜索时要查找的区域数量，越大越准但越慢
+
     def _build_faiss_index(self, embeddings: np.ndarray):
         embeddings = embeddings.astype('float32')
         embedding_dim = embeddings.shape[1]
@@ -119,19 +141,17 @@ class InstructionSearcher:
         faiss.normalize_L2(embeddings)
         self.faiss_index.add(embeddings)
 
-    # 【修改】重写 _get_embeddings_from_api 方法以使用 Semaphore
     async def _get_embeddings_from_api(self, texts: list, session: aiohttp.ClientSession) -> list:
-        # 【新增】创建 Semaphore 实例，控制并发数量
+        # 创建 Semaphore 实例，控制并发数量
         semaphore = asyncio.Semaphore(self.api_concurrency_limit)
         tasks = []
 
-        # 【新增】定义一个内部函数来包含单次请求的逻辑，并用 semaphore 包裹
+        # 定义一个内部函数来包含单次请求的逻辑，并用 semaphore 包裹
         async def fetch_embedding(text):
             async with semaphore: # 在进入前会获取一个"通行证"
                 headers = {"Content-Type": "application/json"}
                 payload = {"model": self.model_path_or_name, "input": text}
                 try:
-                    # 将请求封装在 try...except 中，更好地处理网络异常
                     async with session.post(self.api_url, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=60)) as response:
                         if response.status == 200:
                             result = await response.json()
@@ -164,7 +184,6 @@ class InstructionSearcher:
             instruction_embeddings = self.model.encode(self.unique_instructions, convert_to_tensor=False, show_progress_bar=True)
         else: # api mode
             async with aiohttp.ClientSession() as session:
-                # 【修改】调用新的带并发限制的API请求函数
                 instruction_embeddings = await self._get_embeddings_from_api(self.unique_instructions, session)
                 successful_embeddings = [emb for emb in instruction_embeddings if emb]
                 if len(successful_embeddings) != len(self.unique_instructions):
@@ -188,7 +207,6 @@ class InstructionSearcher:
             query_embeddings = self.model.encode(all_plan_queries, convert_to_tensor=False, show_progress_bar=True)
         else: # api mode
              async with aiohttp.ClientSession() as session:
-                # 【修改】调用新的带并发限制的API请求函数
                 query_embeddings = await self._get_embeddings_from_api(all_plan_queries, session)
         
         for query_embedding in tqdm(query_embeddings, desc="计算语义分数"):
@@ -217,7 +235,6 @@ class InstructionSearcher:
 
 # ==============================================================================
 # 区域 3: 评测函数
-# ... (此区域代码不变)
 # ==============================================================================
 def _get_tool_names(tools: list) -> set:
     if not isinstance(tools, list): return set()
@@ -275,7 +292,6 @@ def calculate_auc_for_query(all_scores: np.ndarray, tool_defs: list, ground_trut
 
 # ==============================================================================
 # 区域 4: 工具定义
-# ... (此区域代码不变)
 # ==============================================================================
 def get_exact_tool_definitions():
     tools = [
@@ -345,7 +361,6 @@ def get_exact_tool_definitions():
 
 # ==============================================================================
 # 区域 5: 评测核心逻辑 
-# ... (此区域代码不变)
 # ==============================================================================
 def evaluate_recall_system(data_df, all_bm25_scores, all_semantic_scores, all_tools_definitions, alpha, k_values, full_report=False):
     results = defaultdict(lambda: defaultdict(list))
@@ -364,8 +379,8 @@ def evaluate_recall_system(data_df, all_bm25_scores, all_semantic_scores, all_to
         ground_truth = row['ground_truth_tool']
         bm25_scores = all_bm25_scores[i]
         semantic_scores = all_semantic_scores[i]
-        print(bm25_scores)
-        print(semantic_scores)
+        # print(bm25_scores)
+        # print(semantic_scores)
         
         norm_bm25 = normalize(bm25_scores)
         norm_semantic = normalize(semantic_scores)
@@ -410,27 +425,29 @@ def evaluate_recall_system(data_df, all_bm25_scores, all_semantic_scores, all_to
 
 
 # ==============================================================================
-# 区域 6: 主程序 (修改为支持模式切换)
+# 区域 6: 主程序 
 # ==============================================================================
 async def main():
     # --- 0. 配置区域 ---
-    # 【重要】在这里选择模式: 'local' 或 'api'
-    MODE = 'api'  # <--- 在这里切换 'local' 或 'api'
+    # 在这里选择模式: 'local' 或 'api'
+    MODE = 'api'  
 
     # 模型和API的配置
     MODEL_PATH = '/home/workspace/lgq/shop/model/Qwen3-Embedding-0.6B'
-    VLLM_API_URL = "http://localhost:8000/v1/embeddings" # 【重要】修正为正确的embeddings端点
-    VLLM_SERVED_MODEL_NAME = "/home/workspace/lgq/shop/model/Qwen3-Embedding-0.6B" # 这个名字需要和vLLM启动时感知的模型名一致，或者也用全路径
-    # 【新增】API并发请求阈值，可根据服务器能力调整
+    VLLM_API_URL = "http://localhost:8000/v1/embeddings" 
+    VLLM_SERVED_MODEL_NAME = "/home/workspace/lgq/shop/model/Qwen3-Embedding-0,6B" # 这个名字需要和vLLM启动时感知的模型名一致
+    # API并发请求阈值，可根据服务器能力调整
     API_CONCURRENCY_LIMIT = 200000 # 任何时候最多只有 200000 个请求在同时进行
 
     # 其他配置
     annotated_data_file_path = '/home/workspace/lgq/shop/data/single_gt_output_with_plan_0815.csv'
     # annotated_data_file_path = '/home/workspace/lgq/shop/data/single_gt_output_with_fc_0815_能力.csv'
+    # annotated_data_file_path = '/home/workspace/lgq/shop/data/single_gt_购物语料-测试结果标注 - 场景单任务1_0815.csv'
     K_VALUES = [1, 2, 3, 5, 10]
     NUM_ERROR_EXAMPLES_TO_PRINT = 10
-    OUTPUT_FILE_PATH = f'/home/workspace/lgq/shop/data/hybrid_recall_results_{MODE}_plan_0.6b.csv' 
-    # OUTPUT_FILE_PATH = f'/home/workspace/lgq/shop/data/hybrid_recall_results_{MODE}_fc能力_0.6b.csv' 
+    OUTPUT_FILE_PATH = f'/home/workspace/lgq/shop/data/evaluate/hybrid_recall_results_{MODE}_plan_0.6b.csv' 
+    # OUTPUT_FILE_PATH = f'/home/workspace/lgq/shop/data/evaluate/hybrid_recall_results_{MODE}_fc能力_0.6b.csv'
+    # OUTPUT_FILE_PATH = f'/home/workspace/lgq/shop/data/evaluate/hybrid_recall_results_{MODE}_测试_8b.csv'
 
     # --- 1. 数据加载 ---
     print("--- 步骤 1: 加载完整数据集 ---")
@@ -445,15 +462,17 @@ async def main():
     
     init_start_time = time.time()
     bm25_retriever = BM25Retriever(data_df, all_tools_definitions)
+    # print(f"data{data_df}")
+    # print(f"tool{all_tools_definitions}")
+    # print(f"bm25{bm25_retriever}")
     
-    # 【修改】将新增的并发限制参数传递给 InstructionSearcher
     instruction_searcher = InstructionSearcher(
         data_df=data_df,
         all_tools_definitions=all_tools_definitions,
         mode=MODE,
         model_path_or_name=MODEL_PATH if MODE == 'local' else VLLM_SERVED_MODEL_NAME,
         api_url=VLLM_API_URL if MODE == 'api' else None,
-        api_concurrency_limit=API_CONCURRENCY_LIMIT # <--- 传递参数
+        api_concurrency_limit=API_CONCURRENCY_LIMIT 
     )
     init_end_time = time.time()
     print(f"\n--- [计时] BM25及意图通路框架初始化耗时: {init_end_time - init_start_time:.2f} 秒 ---\n")
@@ -461,16 +480,17 @@ async def main():
     # --- 3. 计算所有分数 (统一流程) ---
     print("\n--- 步骤 3: 计算所有召回分数 ---")
     bm25_start_time = time.time()
-    all_bm25_scores = [bm25_retriever.retrieve_scores(row['plan（在xx中做什么）']) for _, row in tqdm(data_df.iterrows(), total=len(data_df), desc="计算BM25分数")]
+    # all_bm25_scores = [bm25_retriever.retrieve_scores(row['plan（在xx中做什么）']) for _, row in tqdm(data_df.iterrows(), total=len(data_df), desc="计算BM25分数")]
+    all_bm25_scores = [bm25_retriever.retrieve_scores(row['query']) for _, row in tqdm(data_df.iterrows(), total=len(data_df), desc="计算BM25分数")]
+    
     bm25_end_time = time.time()
 
     semantic_start_time = time.time()
-    all_plan_queries = data_df['plan（在xx中做什么）'].tolist()
-    # 调用统一的函数来获取所有语义分数
+    # all_plan_queries = data_df['plan（在xx中做什么）'].tolist()
+    all_plan_queries = data_df['query'].tolist()
     all_semantic_scores = await instruction_searcher.initialize_and_get_all_scores(all_plan_queries)
     semantic_end_time = time.time()
     
-    # ... (后续的报告、网格搜索、保存文件等逻辑完全保持不变)
     total_queries = len(data_df)
     avg_bm25_latency = (bm25_end_time - bm25_start_time) / total_queries * 1000
     avg_semantic_latency = (semantic_end_time - semantic_start_time) / total_queries * 1000
@@ -494,6 +514,7 @@ async def main():
 
     print("\n--- Alpha值网格搜索完成 ---")
     print(f"找到的最佳Alpha值: {best_alpha:.2f} (对应的最高平均Recall@1为: {best_score:.4f})")
+    # best_alpha = 1
     
     # --- 5. 使用最佳Alpha进行最终的、完整的评测 ---
     print(f"\n--- 步骤 5: 使用最佳Alpha={best_alpha:.2f}进行最终的完整评测 ---")
@@ -503,7 +524,6 @@ async def main():
     
     # --- 6. 汇总并报告最终结果 ---
     print(f"\n\n--- 步骤 6: 最终评测结果报告 (模式: {MODE.upper()}, Alpha: {best_alpha:.2f}) ---")
-    # ... (报告逻辑不变)
     final_scores_report = {}
     for metric, vals in results.items():
         if metric == 'AUC': 
@@ -523,7 +543,7 @@ async def main():
     print(f"**平均查询处理时延 (分数融合+排序)**: {average_latency_ms:.4f} 毫秒/查询")
     print("-" * 70)
 
-    # --- 7. 错误分析 和 8. 保存文件 ... (逻辑不变)
+    # --- 7. 错误分析 和 8. 保存文件 ... 
     print(f"\n\n--- 步骤 7: Top-1 错误案例分析 (共 {len(error_cases)} 个错误) ---")
     if not error_cases:
         print("🎉 恭喜！在数据集上没有发现 Top-1 错误案例！")

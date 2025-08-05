@@ -1,4 +1,3 @@
-# 区域1, 3, 4, 5 的代码保持您原来的版本，此处省略...
 import pandas as pd
 import os
 import json
@@ -10,29 +9,30 @@ from collections import defaultdict
 import time
 import itertools
 import jieba
+import requests 
 
 # ==============================================================================
-# 区域 1: 检查并导入所需库 (无变动)
+# 区域 1: 检查并导入所需库
 # ==============================================================================
 try:
-    from sentence_transformers import SentenceTransformer
+    from sentence_transformers import SentenceTransformer, CrossEncoder
     import torch
     import faiss
     from rank_bm25 import BM25Okapi
     from sklearn.metrics import roc_auc_score
     import aiohttp
     import asyncio
+    # 引入tqdm的异步版本，用于显示并发任务进度条
+    from tqdm.asyncio import tqdm as anaylse_tqdm
 except ImportError as e:
     print(f"错误: 缺少必要的库 -> {e}")
-    print("请在终端运行: pip install faiss-cpu torch sentence-transformers transformers rank_bm25 scikit-learn pandas tqdm aiohttp")
+    print("请在终端运行: pip install faiss-cpu torch sentence-transformers transformers rank_bm25 scikit-learn pandas tqdm aiohttp requests")
     exit()
 
 # ==============================================================================
-# 区域 2: 召回器类定义 (BM25Retriever 不变, InstructionSearcher 修正)
+# 区域 2: 召回器类定义 (BM25Retriever, InstructionSearcher 不变)
 # ==============================================================================
-
 class BM25Retriever:
-    # ... (这部分代码保持不变) ...
     """【关键词通路】BM25召回器，专注于关键词和用户多样化表达的匹配。"""
     def __init__(self, data_df: pd.DataFrame, all_tools_definitions: list, k1=1.5, b=0.75):
         self.definitions = all_tools_definitions
@@ -65,8 +65,6 @@ class BM25Retriever:
             tool_name = tool_def['name']
             tool_idx = self.tool_name_to_idx[tool_name]
             aggregated_text = ' '.join(set(tool_text_aggregator.get(tool_name, [])))
-            tool_info = f"{tool_def.get('name', '')} {tool_def.get('description', '')}"
-            # document = f"{tool_info} {aggregated_text}"
             document = f"{aggregated_text}"
             corpus[tool_idx] = document
         return corpus
@@ -76,23 +74,18 @@ class BM25Retriever:
         return self.bm25.get_scores(tokenized_query)
 
 
-# --- 【核心修正】重构InstructionSearcher，回归到以独立指令为索引键的正确逻辑 ---
 class InstructionSearcher:
     """
-    【精准意图通路】对每条唯一的历史指令进行向量化并构建索引。
-    查询时，使用带任务指令(Prompt)的用户查询来匹配最相似的历史指令，
-    再根据匹配结果聚合得到工具分数。
+    【精准意图通路】支持本地加载或API调用两种模式，以统一向量化方式。
     """
-    def __init__(self, data_df: pd.DataFrame, all_tools_definitions: list, mode: str, model_path_or_name: str, task_prompt: str, api_url: str = None, api_concurrency_limit: int = 10):
+    def __init__(self, data_df: pd.DataFrame, all_tools_definitions: list, mode: str, model_path_or_name: str, api_url: str = None, api_concurrency_limit: int = 10):
         self.definitions = all_tools_definitions
         self.mode = mode
         self.model_path_or_name = model_path_or_name
         self.api_url = api_url
-        self.api_concurrency_limit = api_concurrency_limit
-        self.model = None
+        self.model = None # 用于本地模式
         self.faiss_index = None
-        self.task_prompt = task_prompt
-        print(f"--- [意图通路] 使用的任务指令(Prompt): \"{self.task_prompt}\" ---")
+        self.api_concurrency_limit = api_concurrency_limit
 
         print(f"--- [意图通路] 模式: {self.mode.upper()} ---")
         if self.mode == 'local':
@@ -105,25 +98,15 @@ class InstructionSearcher:
         else:
             raise ValueError("模式 (mode) 必须是 'local' 或 'api'")
 
-        # 【核心修正】调用_build_mappings，构建指令到工具的映射，并获取唯一指令列表
-        print("--- [意图通路] 正在构建指令->工具映射及唯一指令库... ---")
         self._build_mappings(data_df)
-        print(f"--- [意图通路] 唯一指令库构建完成，共 {len(self.unique_instructions)} 条。 ---")
-
 
     def _build_mappings(self, data_df: pd.DataFrame):
-        """
-        【修正】构建从唯一指令到其对应工具的映射，并存储唯一指令列表。
-        """
         self.instruction_to_tool_map = {}
-        # 使用 drop_duplicates 保证每个指令只映射到一个工具，避免歧义
         for _, row in data_df.drop_duplicates(subset=['指令'], keep='last').iterrows():
             if pd.notna(row['指令']) and isinstance(row.get('ground_truth_tool'), list) and row['ground_truth_tool']:
                 self.instruction_to_tool_map[row['指令']] = row['ground_truth_tool'][0]
-        
         self.unique_instructions = list(self.instruction_to_tool_map.keys())
         self.tool_name_to_idx = {tool['name']: i for i, tool in enumerate(self.definitions)}
-
 
     def _build_faiss_index(self, embeddings: np.ndarray):
         embeddings = embeddings.astype('float32')
@@ -131,16 +114,13 @@ class InstructionSearcher:
         self.faiss_index = faiss.IndexFlatIP(embedding_dim)
         faiss.normalize_L2(embeddings)
         self.faiss_index.add(embeddings)
-        
-    def _get_instruct_query_for_api(self, query: str) -> str:
-        return f'Instruct: {self.task_prompt}\nQuery: {query}'
-        # return {query}
 
     async def _get_embeddings_from_api(self, texts: list, session: aiohttp.ClientSession) -> list:
         semaphore = asyncio.Semaphore(self.api_concurrency_limit)
         tasks = []
+
         async def fetch_embedding(text):
-            async with semaphore:
+            async with semaphore: 
                 headers = {"Content-Type": "application/json"}
                 payload = {"model": self.model_path_or_name, "input": text}
                 try:
@@ -155,14 +135,18 @@ class InstructionSearcher:
                 except Exception as e:
                     print(f"请求异常: {e}")
                     return None
+
         for text in texts:
             tasks.append(fetch_embedding(text))
+        
         embeddings = await asyncio.gather(*tasks)
+        
         return [emb if emb is not None else [] for emb in embeddings]
 
     async def initialize_and_get_all_scores(self, all_plan_queries: list):
-        # --- 步骤1: 向量化所有唯一的历史指令 (作为文档，不带指令) ---
+        """统一的初始化和评分函数"""
         print(f"--- [意图通路] 正在将 {len(self.unique_instructions)} 条唯一指令编码为向量...")
+        
         instruction_embeddings = None
         if self.mode == 'local':
             instruction_embeddings = self.model.encode(self.unique_instructions, convert_to_tensor=False, show_progress_bar=True)
@@ -171,61 +155,135 @@ class InstructionSearcher:
                 instruction_embeddings = await self._get_embeddings_from_api(self.unique_instructions, session)
                 successful_embeddings = [emb for emb in instruction_embeddings if emb]
                 if len(successful_embeddings) != len(self.unique_instructions):
-                     # 如果有失败，需要同步 self.unique_instructions 列表，保证向量和指令一一对应
                     print(f"警告: {len(self.unique_instructions) - len(successful_embeddings)} 条指令向量化失败!")
-                    if not successful_embeddings: raise RuntimeError("所有指令向量化失败，无法继续！")
-                    
-                    self.unique_instructions = [inst for inst, emb in zip(self.unique_instructions, instruction_embeddings) if emb]
-                    instruction_embeddings = successful_embeddings
-        
+                    if not successful_embeddings:
+                        raise RuntimeError("所有指令向量化失败，无法继续！")
+                
+                self.unique_instructions = [inst for inst, emb in zip(self.unique_instructions, instruction_embeddings) if emb]
+                instruction_embeddings = successful_embeddings
+
         self._build_faiss_index(np.array(instruction_embeddings))
         print("--- [意图通路] Faiss索引构建完成 ---")
 
-        # --- 步骤2: 向量化所有查询 (带指令) 并计算分数 ---
-        print(f"--- [意图通路] 正在对 {len(all_plan_queries)} 条查询 (带指令)进行评分...")
-        query_embeddings = None
-        if self.mode == 'local':
-            query_embeddings = self.model.encode(all_plan_queries, prompt=self.task_prompt, convert_to_tensor=False, show_progress_bar=True)
-        else: # api mode
-            prompted_queries = [self._get_instruct_query_for_api(q) for q in all_plan_queries]
-            async with aiohttp.ClientSession() as session:
-                query_embeddings = await self._get_embeddings_from_api(prompted_queries, session)
-        
-        # --- 步骤3: 【修正】查询Faiss并聚合分数 ---
+        print(f"--- [意图通路] 正在对 {len(all_plan_queries)} 条查询进行评分...")
         all_semantic_scores = []
+        query_embeddings = None
+
+        if self.mode == 'local':
+            query_embeddings = self.model.encode(all_plan_queries, convert_to_tensor=False, show_progress_bar=True)
+        else: # api mode
+             async with aiohttp.ClientSession() as session:
+                query_embeddings = await self._get_embeddings_from_api(all_plan_queries, session)
+        
         for query_embedding in tqdm(query_embeddings, desc="计算语义分数"):
             if not query_embedding:
                 all_semantic_scores.append(np.zeros(len(self.definitions), dtype='float32'))
                 continue
-            
+
             query_embedding_np = np.array([query_embedding], dtype='float32')
             faiss.normalize_L2(query_embedding_np)
             
-            # 搜索最相似的k条历史指令
             num_neighbors = min(len(self.unique_instructions), 50) 
             distances, indices = self.faiss_index.search(query_embedding_np, k=num_neighbors)
             
-            # 聚合分数到对应的工具上
             tool_scores = np.zeros(len(self.definitions), dtype='float32')
             for dist, idx in zip(distances[0], indices[0]):
                 if idx != -1:
-                    # 1. 根据索引找到匹配到的历史指令
                     matched_instruction = self.unique_instructions[idx]
-                    # 2. 从映射中找到该指令对应的工具
                     tool_def = self.instruction_to_tool_map.get(matched_instruction)
                     if tool_def:
-                        # 3. 找到该工具的全局索引
                         tool_idx = self.tool_name_to_idx.get(tool_def['name'])
                         if tool_idx is not None:
-                            # 4. 更新该工具的分数，取最大值
                             tool_scores[tool_idx] = max(tool_scores[tool_idx], dist)
             all_semantic_scores.append(tool_scores)
             
         return all_semantic_scores
 
 # ==============================================================================
-# 区域 3: 评测函数 (无变动)
-# ... (此区域代码不变)
+# 区域 2.5: Reranker类定义 (不变)
+# ==============================================================================
+class QwenReranker:
+    """
+    【精排通路】使用Qwen3-Reranker对召回结果进行重排序。
+    支持 'local' (同步) 和 'api' (异步) 两种模式。
+    """
+    def __init__(self, mode: str, model_path_or_name: str, api_url: str = None, device: str = 'cuda', api_concurrency_limit: int = 20):
+        self.mode = mode
+        self.model_path_or_name = model_path_or_name
+        self.api_url = api_url
+        self.model = None
+
+        print(f"--- [精排通路] 模式: {self.mode.upper()} ---")
+        if self.mode == 'local':
+            self.device = device if torch.cuda.is_available() else 'cpu'
+            print(f"--- [精排通路] 正在加载Reranker模型: {self.model_path_or_name} ---")
+            self.model = CrossEncoder(self.model_path_or_name, device=self.device, trust_remote_code=True)
+            print(f"--- [精排通路] Reranker模型加载完成，使用设备: {self.device} ---")
+        elif self.mode == 'api':
+            print(f"--- [精排通路] API模式已启用，目标URL: {self.api_url} ---")
+            print(f"--- [精排通路] API并发请求阈值设置为: {api_concurrency_limit} ---")
+            if not self.api_url:
+                raise ValueError("API模式下必须提供 api_url")
+            # 为异步请求创建信号量进行并发控制
+            self.semaphore = asyncio.Semaphore(api_concurrency_limit)
+        else:
+            raise ValueError("Reranker模式 (mode) 必须是 'local' 或 'api'")
+
+    def rerank_sync(self, query: str, documents: list[str]) -> list[tuple[str, float]]:
+        """
+        [同步方法] 对候选文档进行重排序，返回排序后的 (文档, 分数) 列表。
+        """
+        if not documents:
+            return []
+        
+        pairs = [(query, doc) for doc in documents]
+        scores = self.model.predict(pairs, show_progress_bar=False, convert_to_numpy=True)
+        
+        # 将文档和分数打包，并按分数降序排序
+        scored_docs = list(zip(documents, scores))
+        scored_docs.sort(key=lambda x: x[1], reverse=True)
+        return scored_docs
+
+    async def rerank_async(self, query: str, documents: list[str], session: aiohttp.ClientSession) -> list[tuple[str, float]]:
+        """
+        [异步方法] 使用aiohttp并发请求API进行重排序，返回排序后的 (文档, 分数) 列表。
+        """
+        if not documents:
+            return []
+
+        async with self.semaphore: # 使用信号量控制并发数
+            headers = {"Content-Type": "application/json"}
+            payload = {
+                "model": self.model_path_or_name,
+                "query": query,
+                "documents": documents,
+            }
+            try:
+                async with session.post(self.api_url, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=60)) as response:
+                    if response.status == 200:
+                        api_results = await response.json()
+                        # API返回的结果可能无序，需要根据index重建
+                        scored_docs_map = {}
+                        for res in api_results.get('results', []): # 假设返回格式为 {"results": [...]}
+                            if 'index' in res and 'relevance_score' in res and res['index'] < len(documents):
+                                doc = documents[res['index']]
+                                score = res['relevance_score']
+                                scored_docs_map[doc] = score
+                        
+                        # 确保所有文档都有分数，即使API调用失败
+                        scored_docs = [(doc, scored_docs_map.get(doc, 0.0)) for doc in documents]
+                        scored_docs.sort(key=lambda x: x[1], reverse=True)
+                        return scored_docs
+                    else:
+                        error_text = await response.text()
+                        print(f"API Rerank请求失败，状态码: {response.status}, 错误: {error_text[:200]}")
+                        return [(doc, 0.0) for doc in documents]
+            except Exception as e:
+                print(f"API Rerank请求异常: {e}")
+                return [(doc, 0.0) for doc in documents]
+
+# ==============================================================================
+# 区域 3: 评测函数 (不变)
 # ==============================================================================
 def _get_tool_names(tools: list) -> set:
     if not isinstance(tools, list): return set()
@@ -282,10 +340,10 @@ def calculate_auc_for_query(all_scores: np.ndarray, tool_defs: list, ground_trut
     except ValueError: return 0.5
 
 # ==============================================================================
-# 区域 4: 工具定义 (无变动)
-# ... (此区域代码不变)
+# 区域 4: 工具定义 (不变)
 # ==============================================================================
 def get_exact_tool_definitions():
+    # ... (您的工具定义函数，内容不变)
     tools = [
         # 1. 购物 - 搜索 (1.1)
         {"name": "search_goods(app, search_info_slot, page_type, filter_detail_slot, type_slot, area_slot, order_type)", "description": "在app程序中依据名称搜索商品,可以指定具体在哪一个子页面进行搜索, 搜索结果的筛选条件和排序方式"},
@@ -352,9 +410,22 @@ def get_exact_tool_definitions():
     return tools
 
 # ==============================================================================
-# 区域 5: 评测核心逻辑 (无变动)
+# 区域 5: 评测核心逻辑 (采纳新策略修改版)
 # ==============================================================================
-def evaluate_recall_system(data_df, all_bm25_scores, all_semantic_scores, all_tools_definitions, alpha, k_values, full_report=False):
+async def evaluate_recall_system(
+    data_df, 
+    all_bm25_scores, 
+    all_semantic_scores, 
+    all_tools_definitions, 
+    instruction_to_tool_map,
+    tool_to_instructions_map,
+    alpha, 
+    k_values, 
+    reranker: QwenReranker,
+    rerank_top_n, 
+    session: aiohttp.ClientSession,
+    full_report=False
+):
     results = defaultdict(lambda: defaultdict(list))
     error_cases = []
     latency_records = []
@@ -365,24 +436,104 @@ def evaluate_recall_system(data_df, all_bm25_scores, all_semantic_scores, all_to
         if (max_s - min_s) == 0: return np.zeros_like(scores)
         return (scores - min_s) / (max_s - min_s)
 
-    for i, (_, row) in enumerate(data_df.iterrows()):
-        start_time = time.time()
+    # --- 步骤 A: 准备所有任务 ---
+    rerank_tasks = []
+    prepared_data = []
 
-        ground_truth = row['ground_truth_tool']
+    for i, row in data_df.iterrows():
+        query = row['plan（在xx中做什么）']
+        
+        # 1. 召回 (不变)
         bm25_scores = all_bm25_scores[i]
         semantic_scores = all_semantic_scores[i]
-        
         norm_bm25 = normalize(bm25_scores)
         norm_semantic = normalize(semantic_scores)
-        final_scores = alpha * norm_bm25 + (1 - alpha) * norm_semantic
+        recall_scores = alpha * norm_bm25 + (1 - alpha) * norm_semantic
         
-        sorted_indices = np.argsort(final_scores)[::-1]
-        retrieved = [all_tools_definitions[i] for i in sorted_indices]
-        retrieved_scores = final_scores[sorted_indices]
-        
-        end_time = time.time()
-        latency_records.append(end_time - start_time)
+        recall_sorted_indices = np.argsort(recall_scores)[::-1]
+        recall_candidate_tools = [all_tools_definitions[idx] for idx in recall_sorted_indices[:rerank_top_n]]
 
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  修改核心区域 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        # 2. 聚合为“增强版超级文档”
+        rerank_candidates = []
+        doc_to_tool_map = {} 
+        
+        for tool in recall_candidate_tools:
+            # 获取工具的核心信息
+            tool_name = tool.get('name', '')
+            tool_desc = tool.get('description', '')
+            
+            # 获取工具对应的所有指令
+            instructions = tool_to_instructions_map.get(tool_name, [])
+            
+            # 构建增强版超级文档：将核心定义放在最前面，并用特殊标记隔开
+            # 这种结构化信息可以给Reranker更强的信号
+            # 格式： "工具名: [NAME]. 功能描述: [DESC]. 具体指令示例: [INSTR1]. [INSTR2]..."
+            instruction_examples = ". ".join(instructions)
+            super_document = f"工具名: {tool_name}. 功能描述: {tool_desc}. 具体指令示例: {instruction_examples}"
+
+            rerank_candidates.append((tool, super_document))
+            doc_to_tool_map[super_document] = tool
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  修改结束 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+        documents_to_rerank = [doc for _, doc in rerank_candidates]
+
+        # 3. 创建 Rerank 任务 (不变)
+        if not documents_to_rerank:
+             task = asyncio.Future()
+             task.set_result([])
+        elif reranker.mode == 'local':
+            task = reranker.rerank_sync(query, documents_to_rerank)
+        else:
+            task = reranker.rerank_async(query, documents_to_rerank, session)
+        
+        rerank_tasks.append(task)
+        prepared_data.append({
+            "row": row,
+            "recall_scores": recall_scores,
+            "doc_to_tool_map": doc_to_tool_map,
+            "recall_candidate_tools": recall_candidate_tools 
+        })
+
+    # --- 后续处理和评估部分的代码完全不变 ---
+    # ... (从 "步骤 B" 开始的所有代码都和您上一版一样)
+    
+    # --- 步骤 B: 并发执行所有 Rerank 任务 ---
+    all_reranked_results = await anaylse_tqdm.gather(*rerank_tasks, desc="并发精排中")
+
+    # --- 步骤 C: 收集并处理所有结果 ---
+    total_processing_time = 0
+    for i, reranked_docs_with_scores in enumerate(all_reranked_results):
+        start_time = time.time()
+        
+        data = prepared_data[i]
+        row = data['row']
+        recall_scores = data['recall_scores']
+        ground_truth = row['ground_truth_tool']
+        doc_to_tool_map = data['doc_to_tool_map']
+        recall_candidate_tools = data['recall_candidate_tools']
+
+        # 4. 直接使用精排结果进行最终排序
+        retrieved = []
+        retrieved_scores = []
+        added_tool_names = set()
+
+        for doc, score in reranked_docs_with_scores:
+            tool_def = doc_to_tool_map.get(doc)
+            if tool_def and tool_def['name'] not in added_tool_names:
+                retrieved.append(tool_def)
+                retrieved_scores.append(score)
+                added_tool_names.add(tool_def['name'])
+        
+        for tool in recall_candidate_tools:
+             if tool['name'] not in added_tool_names:
+                 retrieved.append(tool)
+                 retrieved_scores.append(-1e9)
+
+        end_time = time.time()
+        total_processing_time += (end_time - start_time)
+
+        # 5. 评估
         if full_report:
             prediction_record = {
                 "query": row['query'],
@@ -399,7 +550,8 @@ def evaluate_recall_system(data_df, all_bm25_scores, all_semantic_scores, all_to
                 results['MRR@K'][k].append(calculate_mrr_at_k(retrieved, ground_truth, k))
                 results['NDCG@K'][k].append(calculate_ndcg_at_k(retrieved, ground_truth, k))
                 results['COMP@K'][k].append(calculate_completeness_at_k(retrieved, ground_truth, k))
-            results['AUC']['all'].append(calculate_auc_for_query(final_scores, all_tools_definitions, ground_truth))
+            
+            results['AUC']['all'].append(calculate_auc_for_query(recall_scores, all_tools_definitions, ground_truth))
             
             if calculate_recall_at_k(retrieved, ground_truth, 1) < 1.0:
                 gt_name = _get_tool_names(ground_truth).pop() if ground_truth else "N/A"
@@ -407,6 +559,9 @@ def evaluate_recall_system(data_df, all_bm25_scores, all_semantic_scores, all_to
                 error_cases.append({"Query": row['plan（在xx中做什么）'], "Ground Truth": [gt_name], "Prediction@1": [pred_name_top1], "Prediction@5": [r.get('name') for r in retrieved[:5]]})
         else:
             results['Recall@K'][1].append(calculate_recall_at_k(retrieved, ground_truth, 1))
+    
+    avg_latency = total_processing_time / len(data_df) if len(data_df) > 0 else 0
+    latency_records = [avg_latency] * len(data_df)
 
     if full_report:
         return results, error_cases, latency_records, detailed_predictions
@@ -415,96 +570,126 @@ def evaluate_recall_system(data_df, all_bm25_scores, all_semantic_scores, all_to
 
 
 # ==============================================================================
-# 区域 6: 主程序 (使用修正后的代码)
+# 区域 6: 主程序 (不变)
 # ==============================================================================
 async def main():
     # --- 0. 配置区域 ---
-    MODE = 'api'  # 'local' 或 'api'
+    EMBEDDING_MODE = 'api'  
+    RERANKER_MODE = 'api' 
 
-    MODEL_PATH = '/home/workspace/lgq/shop/model/Qwen3-Embedding-0.6B'
-    VLLM_API_URL = "http://localhost:8000/v1/embeddings"
-    VLLM_SERVED_MODEL_NAME = "/home/workspace/lgq/shop/model/Qwen3-Embedding-0.6B"
-    API_CONCURRENCY_LIMIT = 200000
+    EMBEDDING_MODEL_PATH = '/path/to/your/Qwen3-Embedding-0.6B'
+    VLLM_EMBEDDING_API_URL = "http://localhost:8000/v1/embeddings" 
+    VLLM_EMBEDDING_MODEL_NAME = "/home/workspace/lgq/shop/model/Qwen3-Embedding-0.6B"
 
-    TASK_PROMPT = "找出最相关的查询和文档"
+    RERANKER_MODEL_PATH = '/home/workspace/lgq/shop/model/Qwen3-Reranker-0.6B'
+    VLLM_RERANKER_API_URL = "http://localhost:8001/v1/rerank" 
+    
+    EMBEDDING_API_CONCURRENCY_LIMIT = 50000
+    RERANKER_API_CONCURRENCY_LIMIT = 50000
 
+    RERANK_TOP_N = 10
     annotated_data_file_path = '/home/workspace/lgq/shop/data/single_gt_output_with_plan_0815.csv'
-    # annotated_data_file_path = '/home/workspace/lgq/shop/data/single_gt_output_with_fc_0815_能力.csv'
     K_VALUES = [1, 2, 3, 5, 10]
     NUM_ERROR_EXAMPLES_TO_PRINT = 10
-    OUTPUT_FILE_PATH = f'/home/workspace/lgq/shop/data/hybrid_recall_results_{MODE}_plan_0.6b_with_prompt.csv'
-    # OUTPUT_FILE_PATH = f'/home/workspace/lgq/shop/data/hybrid_recall_results_{MODE}_fc能力_0.6b_with_prompt.csv'
+    OUTPUT_FILE_PATH = f'/home/workspace/lgq/shop/data/superdoc_reranked_results_{RERANKER_MODE}_plan_0.6b_full_search_async.csv' # <-- 建议修改输出文件名以作区分
 
     # --- 1. 数据加载 ---
     print("--- 步骤 1: 加载完整数据集 ---")
     data_df = pd.read_csv(annotated_data_file_path)
-    data_df = data_df.dropna(subset=['指令', 'ground_truth_tool']).reset_index(drop=True)
+    data_df = data_df.dropna(subset=['指令', 'ground_truth_tool', 'plan（在xx中做什么）']).reset_index(drop=True)
     def parse_tools(s): return ast.literal_eval(s) if isinstance(s, str) else []
     data_df['ground_truth_tool'] = data_df['ground_truth_tool'].apply(parse_tools)
     print(f"数据加载完成: 共 {len(data_df)} 条。\n")
 
-    # --- 2. 初始化双路召回器 ---
+    # --- 2. 初始化召回器、精排器及数据映射 ---
     all_tools_definitions = get_exact_tool_definitions()
     
     init_start_time = time.time()
     bm25_retriever = BM25Retriever(data_df, all_tools_definitions)
-    
-    # 【修正】使用修正后的 InstructionSearcher
     instruction_searcher = InstructionSearcher(
-        data_df=data_df,
-        all_tools_definitions=all_tools_definitions,
-        mode=MODE,
-        model_path_or_name=MODEL_PATH if MODE == 'local' else VLLM_SERVED_MODEL_NAME,
-        api_url=VLLM_API_URL if MODE == 'api' else None,
-        api_concurrency_limit=API_CONCURRENCY_LIMIT,
-        task_prompt=TASK_PROMPT
+        data_df=data_df, all_tools_definitions=all_tools_definitions,
+        mode=EMBEDDING_MODE,
+        model_path_or_name=EMBEDDING_MODEL_PATH if EMBEDDING_MODE == 'local' else VLLM_EMBEDDING_MODEL_NAME,
+        api_url=VLLM_EMBEDDING_API_URL if EMBEDDING_MODE == 'api' else None,
+        api_concurrency_limit=EMBEDDING_API_CONCURRENCY_LIMIT 
     )
+    reranker = QwenReranker(
+        mode=RERANKER_MODE,
+        model_path_or_name=RERANKER_MODEL_PATH,
+        api_url=VLLM_RERANKER_API_URL if RERANKER_MODE == 'api' else None,
+        api_concurrency_limit=RERANKER_API_CONCURRENCY_LIMIT
+    )
+
+    print("--- 正在构建工具->指令的反向映射... ---")
+    tool_to_instructions_map = defaultdict(list)
+    instruction_to_tool_map = instruction_searcher.instruction_to_tool_map
+    for instruction, tool_def in instruction_to_tool_map.items():
+        tool_to_instructions_map[tool_def['name']].append(instruction)
+    print("--- 反向映射构建完成 ---\n")
+
     init_end_time = time.time()
-    print(f"\n--- [计时] BM25及意图通路框架初始化耗时: {init_end_time - init_start_time:.2f} 秒 ---\n")
+    print(f"\n--- [计时] 所有模型和数据映射初始化耗时: {init_end_time - init_start_time:.2f} 秒 ---\n")
 
-    # --- 3. 计算所有分数 (统一流程) ---
-    print("\n--- 步骤 3: 预计算所有召回分数 ---")
-    bm25_start_time = time.time()
+    # --- 3. 计算所有召回分数 ---
+    print("\n--- 步骤 3: 计算所有召回分数 ---")
     all_bm25_scores = [bm25_retriever.retrieve_scores(row['plan（在xx中做什么）']) for _, row in tqdm(data_df.iterrows(), total=len(data_df), desc="计算BM25分数")]
-    bm25_end_time = time.time()
-
-    semantic_start_time = time.time()
     all_plan_queries = data_df['plan（在xx中做什么）'].tolist()
     all_semantic_scores = await instruction_searcher.initialize_and_get_all_scores(all_plan_queries)
-    semantic_end_time = time.time()
     
-    total_queries = len(data_df)
-    avg_bm25_latency = (bm25_end_time - bm25_start_time) / total_queries * 1000
-    avg_semantic_latency = (semantic_end_time - semantic_start_time) / total_queries * 1000
+    # --- 步骤 4. 在【全量数据】上进行Alpha值网格搜索并直接获取最终结果 ---
+    print(f"\n--- 步骤 4: 开始在全部 {len(data_df)} 条数据上进行Alpha值网格搜索 ---")
     
-    print(f"\n--- [计算时延分析] ---")
-    print(f"  BM25通路平均时延: {avg_bm25_latency:.4f} 毫秒/查询")
-    print(f"  精准意图通路平均时延 (模式: {MODE.upper()}, 带指令): {avg_semantic_latency:.4f} 毫秒/查询")
-    print("-" * 30)
-
-    # --- 4. Alpha值网格搜索 ---
-    print("\n--- 步骤 4: 开始进行Alpha值网格搜索 ---")
-    alpha_range = np.linspace(0, 1, 101)
+    alpha_range = np.linspace(0.17, 0.19, 3) 
     best_alpha = -1
     best_score = -1
     
-    for alpha in tqdm(alpha_range, desc="Alpha网格搜索中"):
-        current_score = evaluate_recall_system(data_df, all_bm25_scores, all_semantic_scores, all_tools_definitions, alpha, K_VALUES)
-        if current_score > best_score:
-            best_score = current_score
-            best_alpha = alpha
+    best_results = None
+    best_error_cases = None
+    best_latency_records = None
+    best_detailed_predictions = None
 
-    print("\n--- Alpha值网格搜索完成 ---")
+    async with aiohttp.ClientSession() as session:
+        for alpha in tqdm(alpha_range, desc="Alpha网格搜索中(全量数据)"):
+            eval_start_time = time.time()
+            results, error_cases, latency_records, detailed_predictions = await evaluate_recall_system(
+                data_df,
+                all_bm25_scores,
+                all_semantic_scores,
+                all_tools_definitions, 
+                instruction_to_tool_map, # 保留传递
+                tool_to_instructions_map,
+                alpha, 
+                K_VALUES, 
+                reranker, 
+                RERANK_TOP_N, 
+                session,
+                full_report=True
+            )
+            eval_end_time = time.time()
+            print(f"\nAlpha={alpha:.2f} 的完整评测耗时: {eval_end_time - eval_start_time:.2f} 秒")
+            
+            current_score = np.mean(results['Recall@K'][1])
+
+            if current_score > best_score:
+                best_score = current_score
+                best_alpha = alpha
+                best_results = results
+                best_error_cases = error_cases
+                best_latency_records = latency_records
+                best_detailed_predictions = detailed_predictions
+
+    print(f"\n--- Alpha值网格搜索完成 (在全部 {len(data_df)} 个样本上) ---")
     print(f"找到的最佳Alpha值: {best_alpha:.2f} (对应的最高平均Recall@1为: {best_score:.4f})")
     
-    # --- 5. 使用最佳Alpha进行最终的、完整的评测 ---
-    print(f"\n--- 步骤 5: 使用最佳Alpha={best_alpha:.2f}进行最终的完整评测 ---")
-    results, error_cases, latency_records, detailed_predictions = evaluate_recall_system(
-        data_df, all_bm25_scores, all_semantic_scores, all_tools_definitions, best_alpha, K_VALUES, full_report=True
-    )
+    # --- 步骤 5: 直接使用搜索过程中保存的最佳结果进行报告 ---
+    print(f"\n--- 步骤 5: 使用最佳Alpha={best_alpha:.2f}的结果生成最终报告 ---")
     
-    # --- 6. 汇总并报告最终结果 ---
-    print(f"\n\n--- 步骤 6: 最终评测结果报告 (模式: {MODE.upper()}, Alpha: {best_alpha:.2f}, 带指令) ---")
+    results = best_results
+    latency_records = best_latency_records
+    
+    # --- 步骤 6. 报告最终结果 ---
+    print(f"\n\n--- 步骤 6: 最终评测结果报告 (全量数据寻优, Alpha: {best_alpha:.2f}) ---")
+    
     final_scores_report = {}
     for metric, vals in results.items():
         if metric == 'AUC': 
@@ -514,46 +699,29 @@ async def main():
     
     report_df = pd.DataFrame({ m: final_scores_report[m] for m in ['Recall@K', 'HR@K', 'MAP@K', 'MRR@K', 'NDCG@K', 'COMP@K']}).T
     report_df.columns = [f"@{k}" for k in K_VALUES]
+    
     average_latency_ms = np.mean(latency_records) * 1000
 
-    print(f"混合召回模型 (BM25 + 精准意图[{MODE.upper()}, 带指令]) 在完整数据集上的评测结果:")
-    print("-" * 70)
+    print(f"超级文档精排模型 (BM25+意图[{EMBEDDING_MODE.upper()}] -> Qwen3-Reranker[{RERANKER_MODE.upper()}]) 评测结果:") # <-- 修改了标题
+    print("-" * 80)
     print(report_df.to_string(formatters={col: '{:.4f}'.format for col in report_df.columns}))
-    print(f"\n**AUC (全量排序 ROC AUC)**: {final_scores_report['AUC']:.4f}")
-    print(f"**平均查询处理时延 (分数融合+排序)**: {average_latency_ms:.4f} 毫秒/查询")
-    print("-" * 70)
-
-    # --- 7. 错误分析 和 8. 保存文件 (无变动) ...
-    print(f"\n\n--- 步骤 7: Top-1 错误案例分析 (共 {len(error_cases)} 个错误) ---")
-    if not error_cases:
-        print("🎉 恭喜！在数据集上没有发现 Top-1 错误案例！")
-    else:
-        for i, case in enumerate(error_cases[:NUM_ERROR_EXAMPLES_TO_PRINT]):
-            print(f"\n--- 错误案例 {i+1}/{len(error_cases)} ---")
-            print(f"  [查询 Query]: {case['Query']}")
-            print(f"  [真实工具 Ground Truth]: {case['Ground Truth']}")
-            print(f"  [预测工具 Prediction@1]: {case['Prediction@1']}")
-            print(f"  [预测工具 Prediction@5]: {case['Prediction@5']}")
-        if len(error_cases) > NUM_ERROR_EXAMPLES_TO_PRINT:
-            print(f"\n... (仅显示前 {NUM_ERROR_EXAMPLES_TO_PRINT} 个错误案例) ...")
-    print("-" * 70)
-
-    print(f"\n\n--- 步骤 8: 保存详细召回结果到文件 ---")
-    try:
-        output_records = []
-        for pred in detailed_predictions:
-            record = {'query': pred['query'], 'plan': pred['plan'], 'ground_truth': ', '.join(list(pred['ground_truth'][0])) if pred['ground_truth'] else ''}
-            for i, tool_info in enumerate(pred['retrieved_top_k']):
-                record[f'pred_tool_{i+1}'] = tool_info['tool']
-                record[f'pred_score_{i+1}'] = tool_info['score']
-            output_records.append(record)
-        output_df = pd.DataFrame(output_records)
-        output_df.to_csv(OUTPUT_FILE_PATH, index=False, encoding='utf-8-sig')
-        print(f"✅ 召回结果已成功保存到: {OUTPUT_FILE_PATH}")
-    except Exception as e:
-        print(f"❌ 保存召回结果失败: {e}")
-    print("-" * 70)
+    print(f"\n**AUC (基于召回阶段分数)**: {final_scores_report['AUC']:.4f}")
+    print(f"**平均后处理时延**: {average_latency_ms:.4f} 毫秒/查询")
+    print(f"**精排候选工具数 (RERANK_TOP_N)**: {RERANK_TOP_N}")
+    print("-" * 80)
+    
+    # --- 7 & 8. 错误分析和保存文件 --- (逻辑不变)
+    error_df = pd.DataFrame(best_error_cases)
+    print(f"\n--- 步骤 7: Top-{NUM_ERROR_EXAMPLES_TO_PRINT} 错误案例分析 (Recall@1 < 1.0) ---")
+    print(error_df.head(NUM_ERROR_EXAMPLES_TO_PRINT).to_markdown(index=False))
+    
+    print(f"\n--- 步骤 8: 保存详细评测结果到文件 ---")
+    predictions_df = pd.DataFrame(best_detailed_predictions)
+    predictions_df.to_csv(OUTPUT_FILE_PATH, index=False, encoding='utf-8-sig')
+    print(f"详细结果已保存至: {OUTPUT_FILE_PATH}")
 
 
 if __name__ == "__main__":
+    # 在Jupyter等环境中，可能需要下面这行来避免事件循环已在运行的错误
+    # nest_asyncio.apply()
     asyncio.run(main())
