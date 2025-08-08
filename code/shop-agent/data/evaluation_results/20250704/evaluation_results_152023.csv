@@ -1,0 +1,1034 @@
+﻿app_name,category,query,prediction,label,is_correct,tool_name_correct,params_correct
+抖音,搜索,我要用抖音的商城拍照找找有没有相似的款式,"```json
+{
+  ""tool_name"": ""open_camera_search"",
+  ""tool_parameters"": {
+    ""app"": ""抖音""
+  }
+}
+```","{""tool_name"": ""open_camera_search"", ""tool_parameters"": {""app"": ""抖音""}}",False,False,False
+抖音,购物车,帮我在抖音里瞧瞧购物车,"```json
+{""tool_name"": ""open_cart_content"", ""tool_parameters"": {""app"": ""抖音"", ""filter_type"": ""无""}}
+```","{""tool_name"": ""open_cart_content"", ""tool_parameters"": {""app"": ""抖音"", ""filter_type"": ""无""}}",False,False,False
+抖音,订单,在抖音中查看我的订单,"```json
+{
+  ""tool_name"": ""open_orders"",
+  ""tool_parameters"": {
+    ""app"": ""抖音"",
+    ""order_status"": ""无""
+  }
+}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""抖音"", ""order_status"": ""无""}}",False,False,False
+抖音,收藏,去抖音瞧瞧收藏的商品,"```json
+{""error"": ""No valid tool or parameter found to fulfill the request""}
+```","{""tool_name"": ""open_favorite_goods"", ""tool_parameters"": {""app"": ""抖音"", ""filter_type"": ""无"", ""order_type"": ""无""}}",False,False,False
+抖音,客服,我要进抖音找到我的客服页面,"```json
+{
+  ""tool_name"": ""open_customer_service"",
+  ""tool_parameters"": {
+    ""app"": ""抖音""
+  }
+}
+```","{""tool_name"": ""open_customer_service"", ""tool_parameters"": {""app"": ""抖音""}}",False,False,False
+抖音,签到,在抖音中签到领积分,"```json
+{
+  ""tool_name"": ""sign_in"",
+  ""tool_parameters"": {
+    ""app"": ""抖音"",
+    ""page_type"": ""无""
+  }
+}
+```","{""tool_name"": ""sign_in"", ""tool_parameters"": {""app"": ""抖音"", ""page_type"": ""无""}}",False,False,False
+抖音极速版,搜索,在抖音极速版的商城中使用拍照找同款,"```json
+{""tool_name"": ""open_camera_search"", ""tool_parameters"": {""app"": ""抖音极速版""}}
+```","{""tool_name"": ""open_camera_search"", ""tool_parameters"": {""app"": ""抖音极速版""}}",False,False,False
+抖音极速版,购物车,打开抖音极速版，看看购物车,"```json
+{""error"": ""No valid tool or parameter found to fulfill the request""}
+```","{""tool_name"": ""open_cart_content"", ""tool_parameters"": {""app"": ""抖音极速版"", ""filter_type"": ""无""}}",False,False,False
+抖音极速版,订单,抖音极速版里去查找一下我的订单,"```json
+{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""抖音极速版"", ""order_status"": ""无""}}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""抖音极速版"", ""order_status"": ""无""}}",False,False,False
+抖音极速版,收藏,打开抖音极速版，看看我收藏的商品,"```json
+{
+  ""tool_name"": ""open_favorite_goods"",
+  ""tool_parameters"": {
+    ""app"": ""抖音极速版"",
+    ""filter_type"": ""无"",
+    ""order_type"": ""无""
+  }
+}
+```","{""tool_name"": ""open_favorite_goods"", ""tool_parameters"": {""app"": ""抖音极速版"", ""filter_type"": ""无"", ""order_type"": ""无""}}",False,False,False
+抖音极速版,客服,在抖音极速版中打开我的客服页面,"```json
+{""tool_name"": ""open_customer_service"", ""tool_parameters"": {""app"": ""抖音极速版""}}
+```","{""tool_name"": ""open_customer_service"", ""tool_parameters"": {""app"": ""抖音极速版""}}",False,False,False
+快手,搜索,能不能在快手里用拍照找相似的功能,"```json
+{""tool_name"": ""open_camera_search"", ""tool_parameters"": {""app"": ""快手""}}
+```","{""tool_name"": ""open_camera_search"", ""tool_parameters"": {""app"": ""快手""}}",False,False,False
+快手,订单,帮我在快手查一下我的订单信息,"```json
+{
+  ""tool_name"": ""open_orders"",
+  ""tool_parameters"": {
+    ""app"": ""快手"",
+    ""order_status"": ""无""
+  }
+}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""快手"", ""order_status"": ""无""}}",False,False,False
+快手,收藏,快手帮我看商品收藏列表,"```json
+{
+  ""tool_name"": ""open_favorite_goods"",
+  ""tool_parameters"": {
+    ""app"": ""快手"",
+    ""filter_type"": ""无"",
+    ""order_type"": ""无""
+  }
+}
+```","{""tool_name"": ""open_favorite_goods"", ""tool_parameters"": {""app"": ""快手"", ""filter_type"": ""无"", ""order_type"": ""无""}}",False,False,False
+快手,客服,帮我在快手联系一下官方客服,"```json
+{""tool_name"": ""open_customer_service"", ""tool_parameters"": {""app"": ""快手""}}
+```","{""tool_name"": ""open_customer_service"", ""tool_parameters"": {""app"": ""快手""}}",False,False,False
+快手,购物车,帮我在快手上瞧瞧购物车,"```json
+{
+  ""tool_name"": ""open_cart_content"",
+  ""tool_parameters"": {
+    ""app"": ""快手"",
+    ""filter_type"": ""无""
+  }
+}
+```","{""tool_name"": ""open_cart_content"", ""tool_parameters"": {""app"": ""快手"", ""filter_type"": ""无""}}",False,False,False
+快手极速版,搜索,你好YOYO，我想在快手极速版里用拍照找相似功能,"```json
+{""tool_name"": ""open_camera_search"", ""tool_parameters"": {""app"": ""快手极速版""}}
+```","{""tool_name"": ""open_camera_search"", ""tool_parameters"": {""app"": ""快手极速版""}}",False,False,False
+快手极速版,收藏,帮我在快手极速版里看看我收藏的商品,"```json
+{
+  ""tool_name"": ""open_favorite_goods"",
+  ""tool_parameters"": {
+    ""app"": ""快手极速版"",
+    ""filter_type"": ""无"",
+    ""order_type"": ""无""
+  }
+}
+```","{""tool_name"": ""open_favorite_goods"", ""tool_parameters"": {""app"": ""快手极速版"", ""filter_type"": ""无"", ""order_type"": ""无""}}",False,False,False
+快手极速版,客服,去快手极速版里面联系一下官方客服,"```json
+{""tool_name"": ""open_customer_service"", ""tool_parameters"": {""app"": ""快手极速版""}}
+```","{""tool_name"": ""open_customer_service"", ""tool_parameters"": {""app"": ""快手极速版""}}",False,False,False
+快手极速版,购物车,去快手极速版里瞧瞧购物车,"```json
+{
+  ""tool_name"": ""open_cart_content"",
+  ""tool_parameters"": {
+    ""app"": ""快手极速版"",
+    ""filter_type"": ""无""
+  }
+}
+```","{""tool_name"": ""open_cart_content"", ""tool_parameters"": {""app"": ""快手极速版"", ""filter_type"": ""无""}}",False,False,False
+拼多多,搜索,用拼多多的拍照搜寻功能试试,"```json
+{
+  ""tool_name"": ""open_camera_search"",
+  ""tool_parameters"": {
+    ""app"": ""拼多多""
+  }
+}
+```","{""tool_name"": ""open_camera_search"", ""tool_parameters"": {""app"": ""拼多多""}}",False,False,False
+拼多多,签到,帮我在拼多多里面完成签到,"```json
+{""tool_name"": ""sign_in"", ""tool_parameters"": {""app"": ""拼多多"", ""page_type"": ""无""}}
+```","{""tool_name"": ""sign_in"", ""tool_parameters"": {""app"": ""拼多多"", ""page_type"": ""无""}}",False,False,False
+拼多多,订单,在拼多多中查看我的订单,"```json
+{
+  ""tool_name"": ""open_orders"",
+  ""tool_parameters"": {
+    ""app"": ""拼多多"",
+    ""order_status"": ""无""
+  }
+}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""拼多多"", ""order_status"": ""无""}}",False,False,False
+拼多多,订单,帮我看看拼多多里有哪些订单要付款,"```json
+{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""拼多多"", ""order_status"": ""待付款""}}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""拼多多"", ""order_status"": ""待付款""}}",False,False,False
+拼多多,订单,帮我在拼多多里瞧瞧待收货的订单,"```json
+{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""拼多多"", ""order_status"": ""待收货""}}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""拼多多"", ""order_status"": ""待收货""}}",False,False,False
+拼多多,订单,打开拼多多去查查我的评价记录,"```json
+{""tool_name"": ""open_reviews"", ""tool_parameters"": {""app"": ""拼多多""}}
+```","{""tool_name"": ""open_reviews"", ""tool_parameters"": {""app"": ""拼多多""}}",False,False,False
+拼多多,收藏,我想要看看在拼多多收藏的商品,"```json
+{""error"": ""No valid tool or parameter found to fulfill the request""}
+```","{""tool_name"": ""open_favorite_goods"", ""tool_parameters"": {""app"": ""拼多多"", ""filter_type"": ""无"", ""order_type"": ""无""}}",False,False,False
+拼多多,订单,我想去拼多多看一下退款和售后的情况,"```json
+{
+  ""tool_name"": ""open_orders"",
+  ""tool_parameters"": {
+    ""app"": ""拼多多"",
+    ""order_status"": ""退款售后""
+  }
+}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""拼多多"", ""order_status"": ""退款售后""}}",False,False,False
+拼多多,客服,我需要在拼多多上联系下客服，能帮我找到吗？,"```json
+{""tool_name"": ""open_customer_service"", ""tool_parameters"": {""app"": ""拼多多""}}
+```","{""tool_name"": ""open_customer_service"", ""tool_parameters"": {""app"": ""拼多多""}}",False,False,False
+拼多多,订单,打开拼多多，瞅瞅待分享,"```json
+{
+  ""tool_name"": ""open_orders"",
+  ""tool_parameters"": {
+    ""app"": ""拼多多"",
+    ""order_status"": ""待分享""
+  }
+}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""拼多多"", ""order_status"": ""待分享""}}",False,False,False
+拼多多,订单,去拼多多瞅瞅待发货的订单,"```json
+{
+  ""tool_name"": ""open_orders"",
+  ""tool_parameters"": {
+    ""app"": ""拼多多"",
+    ""order_status"": ""待发货""
+  }
+}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""拼多多"", ""order_status"": ""待发货""}}",False,False,False
+淘宝,搜索,在淘宝上开启拍照搜索功能,"```json
+{""tool_name"": ""open_camera_search"", ""tool_parameters"": {""app"": ""淘宝""}}
+```","{""tool_name"": ""open_camera_search"", ""tool_parameters"": {""app"": ""淘宝""}}",False,False,False
+淘宝,购物车,打开淘宝看看我的购物车,"```json
+{
+  ""tool_name"": ""open_cart_content"",
+  ""tool_parameters"": {
+    ""app"": ""淘宝"",
+    ""filter_type"": ""无""
+  }
+}
+```","{""tool_name"": ""open_cart_content"", ""tool_parameters"": {""app"": ""淘宝"", ""filter_type"": ""无""}}",False,False,False
+淘宝,购物车,淘宝购物车的分组可以给我看下吗,"```json
+{
+  ""tool_name"": ""open_cart_page"",
+  ""tool_parameters"": {
+    ""app"": ""淘宝"",
+    ""page_type"": ""分组""
+  }
+}
+```","{""tool_name"": ""open_cart_page"", ""tool_parameters"": {""app"": ""淘宝"", ""page_type"": ""分组""}}",False,False,False
+淘宝,购物车,去淘宝瞅瞅购物车里降价的商品,"```json
+{
+  ""tool_name"": ""open_cart_content"",
+  ""tool_parameters"": {
+    ""app"": ""淘宝"",
+    ""filter_type"": ""降价""
+  }
+}
+```","{""tool_name"": ""open_cart_content"", ""tool_parameters"": {""app"": ""淘宝"", ""filter_type"": ""降价""}}",False,False,False
+淘宝,收藏,打开淘宝看看我关注的店铺,"```json
+{
+  ""tool_name"": ""search_in_favorite_stores"",
+  ""tool_parameters"": {
+    ""app"": ""淘宝"",
+    ""search_info"": ""我关注的店铺""
+  }
+}
+```","{""tool_name"": ""open_favorite_stores"", ""tool_parameters"": {""app"": ""淘宝"", ""filter_type"": ""无""}}",False,False,False
+淘宝,收藏,帮我在淘宝上瞧瞧特别关注的那些店铺,"```json
+{
+  ""error"": ""No valid tool or parameter found to fulfill the request""
+}
+```","{""tool_name"": ""open_favorite_stores"", ""tool_parameters"": {""app"": ""淘宝"", ""filter_type"": ""特别关注""}}",False,False,False
+淘宝,收藏,在淘宝里面瞧瞧关注店铺正在进行的直播,"```json
+{
+  ""tool_name"": ""open_favorite_stores"",
+  ""tool_parameters"": {
+    ""app"": ""淘宝"",
+    ""filter_type"": ""直播中""
+  }
+}
+```","{""tool_name"": ""open_favorite_stores"", ""tool_parameters"": {""app"": ""淘宝"", ""filter_type"": ""直播中""}}",False,False,False
+淘宝,收藏,在淘宝里面瞧瞧关注店铺新上的商品,"```json
+{""error"": ""No valid tool or parameter found to fulfill the request""}
+```","{""tool_name"": ""open_favorite_stores"", ""tool_parameters"": {""app"": ""淘宝"", ""filter_type"": ""有上新""}}",False,False,False
+淘宝,客服,去淘宝找客服聊聊,"```json
+{""tool_name"": ""open_customer_service"", ""tool_parameters"": {""app"": ""淘宝""}}
+```","{""tool_name"": ""open_customer_service"", ""tool_parameters"": {""app"": ""淘宝""}}",False,False,False
+淘宝,订单,帮我在淘宝里查看一下我的订单,"```json
+{
+  ""tool_name"": ""open_orders"",
+  ""tool_parameters"": {
+    ""app"": ""淘宝"",
+    ""order_status"": ""无""
+  }
+}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""淘宝"", ""order_status"": ""无""}}",False,False,False
+淘宝,订单,打开淘宝瞅瞅待付款的订单,"```json
+{
+  ""tool_name"": ""open_orders"",
+  ""tool_parameters"": {
+    ""app"": ""淘宝"",
+    ""order_status"": ""待付款""
+  }
+}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""淘宝"", ""order_status"": ""待付款""}}",False,False,False
+淘宝,订单,打开淘宝查看一下待发货的订单,"```json
+{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""淘宝"", ""order_status"": ""待发货""}}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""淘宝"", ""order_status"": ""待发货""}}",False,False,False
+淘宝,订单,在淘宝中查看待收货订单,"```json
+{
+  ""tool_name"": ""open_orders"",
+  ""tool_parameters"": {
+    ""app"": ""淘宝"",
+    ""order_status"": ""待收货""
+  }
+}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""淘宝"", ""order_status"": ""待收货""}}",False,False,False
+淘宝,订单,我去淘宝看看我的待评价订单,"```json
+{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""淘宝"", ""order_status"": ""待评价""}}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""淘宝"", ""order_status"": ""待评价""}}",False,False,False
+淘宝,订单,去淘宝里面瞧瞧退款/售后,"```json
+{
+  ""tool_name"": ""open_orders"",
+  ""tool_parameters"": {
+    ""app"": ""淘宝"",
+    ""order_status"": ""退款/售后""
+  }
+}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""淘宝"", ""order_status"": ""退款/售后""}}",False,False,False
+淘宝,签到,在淘宝里面做红包签到,"```json
+{""tool_name"": ""sign_in"", ""tool_parameters"": {""app"": ""淘宝"", ""page_type"": ""红包""}}
+```","{""tool_name"": ""sign_in"", ""tool_parameters"": {""app"": ""淘宝"", ""page_type"": ""红包""}}",False,False,False
+淘宝,物流,打开淘宝瞧瞧我的快递,"```json
+{""tool_name"": ""open_logistics_receive"", ""tool_parameters"": {""app"": ""淘宝"", ""filter_type"": ""无""}}
+```","{""tool_name"": ""open_logistics_receive"", ""tool_parameters"": {""app"": ""淘宝"", ""filter_type"": ""无""}}",False,False,False
+淘宝,物流,在淘宝里面查看一下查取件的信息,"```json
+{""tool_name"": ""open_logistics_receive"", ""tool_parameters"": {""app"": ""淘宝"", ""filter_type"": ""取件信息""}}
+```","{""tool_name"": ""open_logistics_receive"", ""tool_parameters"": {""app"": ""淘宝"", ""filter_type"": ""取件信息""}}",False,False,False
+淘宝,物流,能不能帮我在淘宝上查一下待取件的快递呢,"```json
+{
+  ""tool_name"": ""open_logistics_receive"",
+  ""tool_parameters"": {
+    ""app"": ""淘宝"",
+    ""filter_type"": ""待取件""
+  }
+}
+```","{""tool_name"": ""open_logistics_receive"", ""tool_parameters"": {""app"": ""淘宝"", ""filter_type"": ""待取件""}}",False,False,False
+淘宝,物流,能在淘宝里查询下正在派送的快递吗,"```json
+{""tool_name"": ""open_logistics_receive"", ""tool_parameters"": {""app"": ""淘宝"", ""filter_type"": ""派送中""}}
+```","{""tool_name"": ""open_logistics_receive"", ""tool_parameters"": {""app"": ""淘宝"", ""filter_type"": ""派送中""}}",False,False,False
+淘宝,物流,在淘宝中查看查运输中的快递,"```json
+{
+  ""tool_name"": ""open_logistics_receive"",
+  ""tool_parameters"": {
+    ""app"": ""淘宝"",
+    ""filter_type"": ""运输中""
+  }
+}
+```","{""tool_name"": ""open_logistics_receive"", ""tool_parameters"": {""app"": ""淘宝"", ""filter_type"": ""运输中""}}",False,False,False
+淘宝,物流,能否在淘宝上找一下待发货的快递信息,"```json
+{""tool_name"": ""open_logistics_receive"", ""tool_parameters"": {""app"": ""淘宝"", ""filter_type"": ""待发货""}}
+```","{""tool_name"": ""open_logistics_receive"", ""tool_parameters"": {""app"": ""淘宝"", ""filter_type"": ""待发货""}}",False,False,False
+淘宝,物流,打开淘宝瞅瞅已签收的快递,"```json
+{""tool_name"": ""open_logistics_receive"", ""tool_parameters"": {""app"": ""淘宝"", ""filter_type"": ""已签收""}}
+```","{""tool_name"": ""open_logistics_receive"", ""tool_parameters"": {""app"": ""淘宝"", ""filter_type"": ""已签收""}}",False,False,False
+淘宝,物流,请帮我在淘宝上查询寄件信息,"```json
+{""tool_name"": ""open_logistics_receive"", ""tool_parameters"": {""app"": ""淘宝"", ""filter_type"": ""无""}}
+```","{""tool_name"": ""open_logistics_send"", ""tool_parameters"": {""app"": ""淘宝"", ""filter_type"": ""无""}}",False,False,False
+淘宝,物流,在淘宝里面瞧瞧待寄出的寄件,"```json
+{""tool_name"": ""open_logistics_send"", ""tool_parameters"": {""app"": ""淘宝"", ""filter_type"": ""待寄出寄件""}}
+```","{""tool_name"": ""open_logistics_send"", ""tool_parameters"": {""app"": ""淘宝"", ""filter_type"": ""待寄出寄件""}}",False,False,False
+淘宝,物流,在淘宝里面瞧瞧待支付的寄件,"```json
+{""tool_name"": ""open_logistics_send"", ""tool_parameters"": {""app"": ""淘宝"", ""filter_type"": ""待寄出寄件""}}
+```","{""tool_name"": ""open_logistics_send"", ""tool_parameters"": {""app"": ""淘宝"", ""filter_type"": ""待支付寄件""}}",False,False,False
+淘宝,物流,在淘宝里面瞧瞧待取件的寄件,"```json
+{""tool_name"": ""open_logistics_receive"", ""tool_parameters"": {""app"": ""淘宝"", ""filter_type"": ""待取件""}}
+```","{""tool_name"": ""open_logistics_send"", ""tool_parameters"": {""app"": ""淘宝"", ""filter_type"": ""待取件寄件""}}",False,False,False
+淘宝,物流,打开淘宝看看有没有正在派送的快递,"```json
+{""tool_name"": ""open_logistics_receive"", ""tool_parameters"": {""app"": ""淘宝"", ""filter_type"": ""派送中""}}
+```","{""tool_name"": ""open_logistics_send"", ""tool_parameters"": {""app"": ""淘宝"", ""filter_type"": ""派送中寄件""}}",False,False,False
+淘宝,物流,我想在淘宝上看看正在运输的包裹,"```json
+{""tool_name"": ""open_logistics_receive"", ""tool_parameters"": {""app"": ""淘宝"", ""filter_type"": ""运输中""}}
+```","{""tool_name"": ""open_logistics_send"", ""tool_parameters"": {""app"": ""淘宝"", ""filter_type"": ""运输中寄件""}}",False,False,False
+淘宝,物流,打开淘宝，看看那些已经签收的寄件,"```json
+{
+  ""tool_name"": ""open_logistics_receive"",
+  ""tool_parameters"": {
+    ""app"": ""淘宝"",
+    ""filter_type"": ""已签收""
+  }
+}
+```","{""tool_name"": ""open_logistics_send"", ""tool_parameters"": {""app"": ""淘宝"", ""filter_type"": ""已签收寄件""}}",False,False,False
+淘宝,收藏,嗯，帮我打开淘宝看看我的收藏,"```json
+{
+  ""error"": ""No valid tool or parameter found to fulfill the request""
+}
+```","{""tool_name"": ""open_favorite_goods"", ""tool_parameters"": {""app"": ""淘宝"", ""filter_type"": ""无"", ""order_type"": ""无""}}",False,False,False
+京东,搜索,去京东把搜索记录清除一下,"```json
+{""tool_name"": ""delete_search_history"", ""tool_parameters"": {""app"": ""京东""}}
+```","{""tool_name"": ""delete_search_history"", ""tool_parameters"": {""app"": ""京东""}}",False,False,False
+京东,搜索,在京东里面把相机功能打开,"```json
+{""tool_name"": ""open_camera_search"", ""tool_parameters"": {""app"": ""京东""}}
+```","{""tool_name"": ""open_camera_search"", ""tool_parameters"": {""app"": ""京东""}}",False,False,False
+京东,物流,用京东寄个快递,"```json
+{""tool_name"": ""open_express_delivery"", ""tool_parameters"": {""app"": ""京东""}}
+```","{""tool_name"": ""open_express_delivery"", ""tool_parameters"": {""app"": ""京东""}}",False,False,False
+京东,购物车,你帮我打开京东的购物车看看,"```json
+{""tool_name"": ""open_cart_content"", ""tool_parameters"": {""app"": ""京东"", ""filter_type"": ""无""}}
+```","{""tool_name"": ""open_cart_content"", ""tool_parameters"": {""app"": ""京东"", ""filter_type"": ""无""}}",False,False,False
+京东,购物车,麻烦你打开京东查看我的购物车里有没有降价的商品,"```json
+{
+  ""tool_name"": ""open_cart_content"",
+  ""tool_parameters"": {
+    ""app"": ""京东"",
+    ""filter_type"": ""降价""
+  }
+}
+```","{""tool_name"": ""open_cart_content"", ""tool_parameters"": {""app"": ""京东"", ""filter_type"": ""降价""}}",False,False,False
+京东,客服,帮我在京东里面瞧瞧客户服务,"```json
+{""tool_name"": ""open_customer_service"", ""tool_parameters"": {""app"": ""京东""}}
+```","{""tool_name"": ""open_customer_service"", ""tool_parameters"": {""app"": ""京东""}}",False,False,False
+京东,签到,打开京东去签到领京豆,"```json
+{
+  ""tool_name"": ""sign_in"",
+  ""tool_parameters"": {
+    ""app"": ""京东"",
+    ""page_type"": ""无""
+  }
+}
+```","{""tool_name"": ""sign_in"", ""tool_parameters"": {""app"": ""京东"", ""page_type"": ""无""}}",False,False,False
+京东,收藏,去京东瞧瞧商品收藏,"```json
+{""error"": ""No valid tool or parameter found to fulfill the request""}
+```","{""tool_name"": ""open_favorite_goods"", ""tool_parameters"": {""app"": ""京东"", ""filter_type"": ""无"", ""order_type"": ""无""}}",False,False,False
+京东,收藏,帮我在京东里瞧瞧店铺关注,"```json
+{""tool_name"": ""open_favorite_stores"", ""tool_parameters"": {""app"": ""京东"", ""filter_type"": ""无""}}
+```","{""tool_name"": ""open_favorite_stores"", ""tool_parameters"": {""app"": ""京东"", ""filter_type"": ""无""}}",False,False,False
+京东,订单,打开京东，看看我有哪些订单是待付款的,"```json
+{
+  ""tool_name"": ""open_orders"",
+  ""tool_parameters"": {
+    ""app"": ""京东"",
+    ""order_status"": ""待付款""
+  }
+}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""京东"", ""order_status"": ""待付款""}}",False,False,False
+京东,订单,帮我在京东里面瞅瞅待收货的订单,"```json
+{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""京东"", ""order_status"": ""待收货""}}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""京东"", ""order_status"": ""待收货""}}",False,False,False
+京东,订单,京东上查一下待服务订单情况,"```json
+{
+  ""tool_name"": ""open_orders"",
+  ""tool_parameters"": {
+    ""app"": ""京东"",
+    ""order_status"": ""待服务""
+  }
+}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""京东"", ""order_status"": ""待服务""}}",False,False,False
+京东,订单,打开京东，看看有哪些待评价订单,"```json
+{
+  ""tool_name"": ""open_orders"",
+  ""tool_parameters"": {
+    ""app"": ""京东"",
+    ""order_status"": ""待评价""
+  }
+}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""京东"", ""order_status"": ""待评价""}}",False,False,False
+京东,订单,我想去京东找一下退货或者售后的页面,"```json
+{
+  ""tool_name"": ""search_order"",
+  ""tool_parameters"": {
+    ""app"": ""京东"",
+    ""search_info"": ""退货或者售后"",
+    ""order_status"": ""无""
+  }
+}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""京东"", ""order_status"": ""退款/售后""}}",False,False,False
+京东,订单,在京东中查看全部订单,"```json
+{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""京东"", ""order_status"": ""无""}}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""京东"", ""order_status"": ""无""}}",False,False,False
+天猫,搜索,去天猫里面把搜索记录清除一下,"```json
+{
+  ""tool_name"": ""delete_search_history"",
+  ""tool_parameters"": {
+    ""app"": ""天猫""
+  }
+}
+```","{""tool_name"": ""delete_search_history"", ""tool_parameters"": {""app"": ""天猫""}}",False,False,False
+天猫,签到,在天猫中领取现金,"{
+  ""tool_name"": ""sign_in"",
+  ""tool_parameters"": {
+    ""app"": ""天猫"",
+    ""page_type"": ""领现金""
+  }
+}","{""tool_name"": ""sign_in"", ""tool_parameters"": {""app"": ""天猫"", ""page_type"": ""领现金""}}",True,True,True
+天猫,搜索,用天猫的拍照功能来搜索,"```json
+{""tool_name"": ""open_camera_search"", ""tool_parameters"": {""app"": ""天猫""}}
+```","{""tool_name"": ""open_camera_search"", ""tool_parameters"": {""app"": ""天猫""}}",False,False,False
+天猫,签到,在天猫中领取福气红包,"```json
+{
+  ""tool_name"": ""sign_in"",
+  ""tool_parameters"": {
+    ""app"": ""天猫"",
+    ""page_type"": ""红包""
+  }
+}
+```","{""tool_name"": ""sign_in"", ""tool_parameters"": {""app"": ""天猫"", ""page_type"": ""红包""}}",False,False,False
+天猫,购物车,帮忙看看天猫购物车里的东西,"```json
+{
+  ""tool_name"": ""open_cart_content"",
+  ""tool_parameters"": {
+    ""app"": ""天猫"",
+    ""filter_type"": ""无""
+  }
+}
+```","{""tool_name"": ""open_cart_content"", ""tool_parameters"": {""app"": ""天猫"", ""filter_type"": ""无""}}",False,False,False
+天猫,客服,在天猫中联系客服,"```json
+{
+  ""tool_name"": ""open_customer_service"",
+  ""tool_parameters"": {
+    ""app"": ""天猫""
+  }
+}
+```","{""tool_name"": ""open_customer_service"", ""tool_parameters"": {""app"": ""天猫""}}",False,False,False
+天猫,订单,在天猫中查看待付款订单,"```json
+{
+  ""tool_name"": ""open_orders"",
+  ""tool_parameters"": {
+    ""app"": ""天猫"",
+    ""order_status"": ""待付款""
+  }
+}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""天猫"", ""order_status"": ""待付款""}}",False,False,False
+天猫,订单,查一下我的天猫待发货订单,"```json
+{
+  ""tool_name"": ""open_orders"",
+  ""tool_parameters"": {
+    ""app"": ""天猫"",
+    ""order_status"": ""待发货""
+  }
+}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""天猫"", ""order_status"": ""待发货""}}",False,False,False
+天猫,订单,打开天猫，看看有没有待收货的订单,"```json
+{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""天猫"", ""order_status"": ""待收货""}}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""天猫"", ""order_status"": ""待收货""}}",False,False,False
+天猫,订单,打开天猫，查看我的退款和售后订单详情,"```json
+{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""天猫"", ""order_status"": ""退款和售后""}}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""天猫"", ""order_status"": ""退款和售后""}}",False,False,False
+天猫,订单,天猫上找找我所有的订单,"```json
+{
+  ""tool_name"": ""open_orders"",
+  ""tool_parameters"": {
+    ""app"": ""天猫"",
+    ""order_status"": ""无""
+  }
+}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""天猫"", ""order_status"": ""无""}}",False,False,False
+天猫,订单,在天猫中查看待评价订单,"```json
+{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""天猫"", ""order_status"": ""待评价""}}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""天猫"", ""order_status"": ""待评价""}}",False,False,False
+天猫,收藏,在天猫里面瞧瞧收藏夹,"```json
+{""error"": ""No valid tool or parameter found to fulfill the request""}
+```","{""tool_name"": ""open_favorite_goods"", ""tool_parameters"": {""app"": ""天猫"", ""filter_type"": ""无"", ""order_type"": ""无""}}",False,False,False
+天猫,收藏,能不能到天猫看看我关注的那些店铺,"```json
+{
+  ""tool_name"": ""open_favorite_stores"",
+  ""tool_parameters"": {
+    ""app"": ""天猫"",
+    ""filter_type"": ""无""
+  }
+}
+```","{""tool_name"": ""open_favorite_stores"", ""tool_parameters"": {""app"": ""天猫"", ""filter_type"": ""无""}}",False,False,False
+闲鱼,客服,打开闲鱼并找到帮助与客服页面,"```json
+{
+  ""tool_name"": ""open_customer_service"",
+  ""tool_parameters"": {
+    ""app"": ""闲鱼""
+  }
+}
+```","{""tool_name"": ""open_customer_service"", ""tool_parameters"": {""app"": ""闲鱼""}}",False,False,False
+闲鱼,收藏,去闲鱼瞧瞧我的收藏,"```json
+{
+  ""tool_name"": ""search_in_favorite_goods"",
+  ""tool_parameters"": {
+    ""app"": ""闲鱼"",
+    ""search_info"": """"
+  }
+}
+```","{""tool_name"": ""open_favorite_goods"", ""tool_parameters"": {""app"": ""闲鱼"", ""filter_type"": ""无"", ""order_type"": ""无""}}",False,False,False
+闲鱼,收藏,打开闲鱼瞧瞧降价的宝贝,"```json
+{
+  ""tool_name"": ""search_in_favorite_goods"",
+  ""tool_parameters"": {
+    ""app"": ""闲鱼"",
+    ""search_info"": ""降价的宝贝""
+  }
+}
+```","{""tool_name"": ""open_favorite_goods"", ""tool_parameters"": {""app"": ""闲鱼"", ""filter_type"": ""降价"", ""order_type"": ""无""}}",False,False,False
+闲鱼,收藏,我去闲鱼瞅瞅我收藏的有效宝贝,"```json
+{
+  ""tool_name"": ""search_in_favorite_goods"",
+  ""tool_parameters"": {
+    ""app"": ""闲鱼"",
+    ""search_info"": ""有效宝贝""
+  }
+}
+```","{""tool_name"": ""open_favorite_goods"", ""tool_parameters"": {""app"": ""闲鱼"", ""filter_type"": ""有效"", ""order_type"": ""无""}}",False,False,False
+闲鱼,订单,麻烦去闲鱼帮我查一下我自己发布的商品,"```json
+{
+  ""tool_name"": ""open_second_hand_orders"",
+  ""tool_parameters"": {
+    ""app"": ""闲鱼"",
+    ""order_status"": ""无"",
+    ""product_status"": ""无"",
+    ""transaction_type"": ""我发布的""
+  }
+}
+```","{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""闲鱼"", ""order_status"": ""无"", ""product_status"": ""无"", ""transaction_type"": ""我发布的""}}",False,False,False
+闲鱼,订单,打开闲鱼查看我售卖的商品列表,"```json
+{
+  ""tool_name"": ""open_second_hand_orders"",
+  ""tool_parameters"": {
+    ""app"": ""闲鱼"",
+    ""order_status"": ""无"",
+    ""product_status"": ""无"",
+    ""transaction_type"": ""我发布的""
+  }
+}
+```","{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""闲鱼"", ""order_status"": ""无"", ""product_status"": ""在卖"", ""transaction_type"": ""我卖出的""}}",False,False,False
+闲鱼,订单,在闲鱼中查看我发布的草稿,"```json
+{
+  ""tool_name"": ""open_second_hand_orders"",
+  ""tool_parameters"": {
+    ""app"": ""闲鱼"",
+    ""order_status"": ""无"",
+    ""product_status"": ""草稿"",
+    ""transaction_type"": ""我发布的""
+  }
+}
+```","{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""闲鱼"", ""order_status"": ""无"", ""product_status"": ""草稿"", ""transaction_type"": ""我发布的""}}",False,False,False
+闲鱼,订单,打开闲鱼，帮我看看那些已经下架的商品,"```json
+{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""闲鱼"", ""order_status"": ""无"", ""product_status"": ""已下架"", ""transaction_type"": ""我发布的""}}
+```","{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""闲鱼"", ""order_status"": ""无"", ""product_status"": ""已下架"", ""transaction_type"": ""我发布的""}}",False,False,False
+闲鱼,订单,在闲鱼中查看我卖出的商品,"```json
+{
+  ""tool_name"": ""open_second_hand_orders"",
+  ""tool_parameters"": {
+    ""app"": ""闲鱼"",
+    ""order_status"": ""无"",
+    ""product_status"": ""无"",
+    ""transaction_type"": ""我卖出的""
+  }
+}
+```","{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""闲鱼"", ""order_status"": ""无"", ""product_status"": ""无"", ""transaction_type"": ""我卖出的""}}",False,False,False
+闲鱼,订单,能否在闲鱼中查一下我卖出的所有物品,"```json
+{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""闲鱼"", ""order_status"": ""无"", ""product_status"": ""无"", ""transaction_type"": ""我卖出的""}}
+```","{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""闲鱼"", ""order_status"": ""全部"", ""product_status"": ""无"", ""transaction_type"": ""我卖出的""}}",False,False,False
+闲鱼,订单,在闲鱼中查看卖出商品的待付款订单,"```json
+{
+  ""tool_name"": ""open_second_hand_orders"",
+  ""tool_parameters"": {
+    ""app"": ""闲鱼"",
+    ""order_status"": ""待付款"",
+    ""product_status"": ""无"",
+    ""transaction_type"": ""我卖出的""
+  }
+}
+```","{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""闲鱼"", ""order_status"": ""待付款"", ""product_status"": ""无"", ""transaction_type"": ""我卖出的""}}",False,False,False
+闲鱼,订单,去闲鱼瞧瞧卖出商品里待发货的货品,"```json
+{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""闲鱼"", ""order_status"": ""待发货"", ""product_status"": ""无"", ""transaction_type"": ""我卖出的""}}
+```","{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""闲鱼"", ""order_status"": ""待发货"", ""product_status"": ""无"", ""transaction_type"": ""我卖出的""}}",False,False,False
+闲鱼,订单,帮我在闲鱼查看我已卖出但还未收货的商品,"```json
+{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""闲鱼"", ""order_status"": ""待收货"", ""product_status"": ""无"", ""transaction_type"": ""我卖出的""}}
+```","{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""闲鱼"", ""order_status"": ""待收货"", ""product_status"": ""无"", ""transaction_type"": ""我卖出的""}}",False,False,False
+闲鱼,订单,打开闲鱼检查一下我卖出的商品有没有需要评价的,"```json
+{
+  ""tool_name"": ""open_second_hand_orders"",
+  ""tool_parameters"": {
+    ""app"": ""闲鱼"",
+    ""order_status"": ""待评价"",
+    ""product_status"": ""无"",
+    ""transaction_type"": ""我卖出的""
+  }
+}
+```","{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""闲鱼"", ""order_status"": ""待评价"", ""product_status"": ""无"", ""transaction_type"": ""我卖出的""}}",False,False,False
+闲鱼,订单,帮我在闲鱼里瞧瞧退款中的商品,"```json
+{
+  ""tool_name"": ""open_second_hand_orders"",
+  ""tool_parameters"": {
+    ""app"": ""闲鱼"",
+    ""order_status"": ""退款中"",
+    ""product_status"": ""无"",
+    ""transaction_type"": ""我卖出的""
+  }
+}
+```","{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""闲鱼"", ""order_status"": ""退款中"", ""product_status"": ""无"", ""transaction_type"": ""我卖出的""}}",False,False,False
+闲鱼,订单,帮我打开闲鱼，看看已入手商品,"```json
+{
+  ""tool_name"": ""open_second_hand_orders"",
+  ""tool_parameters"": {
+    ""app"": ""闲鱼"",
+    ""order_status"": ""无"",
+    ""product_status"": ""无"",
+    ""transaction_type"": ""我发布的""
+  }
+}
+```","{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""闲鱼"", ""order_status"": ""无"", ""product_status"": ""无"", ""transaction_type"": ""我买到的""}}",False,False,False
+闲鱼,订单,帮我到闲鱼里查看我买的所有东西,"```json
+{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""闲鱼"", ""order_status"": ""全部"", ""product_status"": ""无"", ""transaction_type"": ""我买的""}}
+```","{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""闲鱼"", ""order_status"": ""无"", ""product_status"": ""无"", ""transaction_type"": ""我买到的""}}",False,False,False
+闲鱼,订单,在闲鱼里瞧瞧我买到商品的待付款订单,"```json
+{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""闲鱼"", ""order_status"": ""待付款"", ""product_status"": ""无"", ""transaction_type"": ""我买到的""}}
+```","{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""闲鱼"", ""order_status"": ""待付款"", ""product_status"": ""无"", ""transaction_type"": ""我买到的""}}",False,False,False
+闲鱼,订单,我想在闲鱼上瞅瞅我买到商品的待发货订单,"```json
+{
+  ""tool_name"": ""open_second_hand_orders"",
+  ""tool_parameters"": {
+    ""app"": ""闲鱼"",
+    ""order_status"": ""待发货"",
+    ""product_status"": ""无"",
+    ""transaction_type"": ""我买到的""
+  }
+}
+```","{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""闲鱼"", ""order_status"": ""待发货"", ""product_status"": ""无"", ""transaction_type"": ""我买到的""}}",False,False,False
+闲鱼,订单,打开闲鱼，看看我买到商品里的待收货订单,"```json
+{
+  ""tool_name"": ""open_second_hand_orders"",
+  ""tool_parameters"": {
+    ""app"": ""闲鱼"",
+    ""order_status"": ""待收货"",
+    ""product_status"": ""无"",
+    ""transaction_type"": ""我买到的""
+  }
+}
+```","{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""闲鱼"", ""order_status"": ""待收货"", ""product_status"": ""无"", ""transaction_type"": ""我买到的""}}",False,False,False
+闲鱼,订单,去闲鱼瞅瞅我买到商品的退款中的订单,"```json
+{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""闲鱼"", ""order_status"": ""退款中"", ""product_status"": ""无"", ""transaction_type"": ""我买到的""}}
+```","{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""闲鱼"", ""order_status"": ""退款中"", ""product_status"": ""无"", ""transaction_type"": ""我买到的""}}",False,False,False
+闲鱼,订单,在闲鱼里面瞧瞧待评价的订单,"```json
+{
+  ""tool_name"": ""open_second_hand_orders"",
+  ""tool_parameters"": {
+    ""app"": ""闲鱼"",
+    ""order_status"": ""待评价"",
+    ""product_status"": ""无"",
+    ""transaction_type"": ""我卖出的""
+  }
+}
+```","{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""闲鱼"", ""order_status"": ""待评价"", ""product_status"": ""无"", ""transaction_type"": ""我买到的""}}",False,False,False
+抖音火山版,购物车,打开抖音火山版，去看看购物车,"```json
+{""tool_name"": ""open_cart_content"", ""tool_parameters"": {""app"": ""抖音火山版"", ""filter_type"": ""无""}}
+```","{""tool_name"": ""open_cart_content"", ""tool_parameters"": {""app"": ""抖音火山版"", ""filter_type"": ""无""}}",False,False,False
+抖音火山版,订单,在抖音火山版里瞧瞧我的订单,"```json
+{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""抖音火山版"", ""order_status"": ""无""}}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""抖音火山版"", ""order_status"": ""无""}}",False,False,False
+抖音火山版,收藏,你好，在抖音火山版里看看我收藏的商品,"```json
+{
+  ""tool_name"": ""open_favorite_goods"",
+  ""tool_parameters"": {
+    ""app"": ""抖音火山版"",
+    ""filter_type"": ""无"",
+    ""order_type"": ""无""
+  }
+}
+```","{""tool_name"": ""open_favorite_goods"", ""tool_parameters"": {""app"": ""抖音火山版"", ""filter_type"": ""无"", ""order_type"": ""无""}}",False,False,False
+抖音火山版,搜索,在抖音火山版里把商城的相机功能打开,"```json
+{""tool_name"": ""open_camera_search"", ""tool_parameters"": {""app"": ""抖音火山版""}}
+```","{""tool_name"": ""open_camera_search"", ""tool_parameters"": {""app"": ""抖音火山版""}}",False,False,False
+抖音火山版,客服,在抖音火山版中联系我的客服,"```json
+{""tool_name"": ""open_customer_service"", ""tool_parameters"": {""app"": ""抖音火山版""}}
+```","{""tool_name"": ""open_customer_service"", ""tool_parameters"": {""app"": ""抖音火山版""}}",False,False,False
+阿里巴巴,购物车,在阿里巴巴里面瞧瞧常购商品,"```json
+{""tool_name"": ""open_cart_content"", ""tool_parameters"": {""app"": ""阿里巴巴"", ""filter_type"": ""常购""}}
+```","{""tool_name"": ""open_cart_content"", ""tool_parameters"": {""app"": ""阿里巴巴"", ""filter_type"": ""常购""}}",False,False,False
+阿里巴巴,购物车,打开阿里巴巴，查一下代发的采购车,"```json
+{
+  ""tool_name"": ""open_cart_content"",
+  ""tool_parameters"": {
+    ""app"": ""阿里巴巴"",
+    ""filter_type"": ""代发""
+  }
+}
+```","{""tool_name"": ""open_cart_content"", ""tool_parameters"": {""app"": ""阿里巴巴"", ""filter_type"": ""代发""}}",False,False,False
+阿里巴巴,购物车,在阿里巴巴上瞧瞧采购车里的现货,"```json
+{""tool_name"": ""open_cart_content"", ""tool_parameters"": {""app"": ""阿里巴巴"", ""filter_type"": ""现货""}}
+```","{""tool_name"": ""open_cart_content"", ""tool_parameters"": {""app"": ""阿里巴巴"", ""filter_type"": ""现货""}}",False,False,False
+阿里巴巴,购物车,打开阿里巴巴，看看采购车,"```json
+{
+  ""tool_name"": ""open_cart_content"",
+  ""tool_parameters"": {
+    ""app"": ""阿里巴巴"",
+    ""filter_type"": ""无""
+  }
+}
+```","{""tool_name"": ""open_cart_content"", ""tool_parameters"": {""app"": ""阿里巴巴"", ""filter_type"": ""无""}}",False,False,False
+阿里巴巴,搜索,在阿里巴巴里头用一下拍照功能,"```json
+{
+  ""tool_name"": ""open_camera_search"",
+  ""tool_parameters"": {
+    ""app"": ""阿里巴巴""
+  }
+}
+```","{""tool_name"": ""open_camera_search"", ""tool_parameters"": {""app"": ""阿里巴巴""}}",False,False,False
+阿里巴巴,订单,打开阿里巴巴，看看有哪些待发货的订单,"```json
+{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""阿里巴巴"", ""order_status"": ""待发货""}}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""阿里巴巴"", ""order_status"": ""待发货""}}",False,False,False
+阿里巴巴,订单,在阿里巴巴里瞧瞧待付款的订单,"```json
+{
+  ""tool_name"": ""open_orders"",
+  ""tool_parameters"": {
+    ""app"": ""阿里巴巴"",
+    ""order_status"": ""待付款""
+  }
+}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""阿里巴巴"", ""order_status"": ""待付款""}}",False,False,False
+阿里巴巴,订单,在阿里巴巴中查看待评价订单,"```json
+{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""阿里巴巴"", ""order_status"": ""待评价""}}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""阿里巴巴"", ""order_status"": ""待评价""}}",False,False,False
+阿里巴巴,订单,在阿里巴巴里瞧瞧待收货的订单,"```json
+{
+  ""tool_name"": ""open_orders"",
+  ""tool_parameters"": {
+    ""app"": ""阿里巴巴"",
+    ""order_status"": ""待收货""
+  }
+}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""阿里巴巴"", ""order_status"": ""待收货""}}",False,False,False
+阿里巴巴,收藏,在阿里巴巴中查看关注的店铺,"```json
+{""error"": ""No valid tool or parameter found to fulfill the request""}
+```","{""tool_name"": ""open_favorite_stores"", ""tool_parameters"": {""app"": ""阿里巴巴"", ""filter_type"": ""无""}}",False,False,False
+阿里巴巴,客服,在阿里巴巴里面找官方客服聊聊,"```json
+{""tool_name"": ""open_customer_service"", ""tool_parameters"": {""app"": ""阿里巴巴""}}
+```","{""tool_name"": ""open_customer_service"", ""tool_parameters"": {""app"": ""阿里巴巴""}}",False,False,False
+阿里巴巴,收藏,在阿里巴巴中查看收藏,"```json
+{""error"": ""No valid tool or parameter found to fulfill the request""}
+```","{""tool_name"": ""open_favorite_goods"", ""tool_parameters"": {""app"": ""阿里巴巴"", ""filter_type"": ""无"", ""order_type"": ""无""}}",False,False,False
+阿里巴巴,订单,请帮我在阿里巴巴应用里进入退款-售后界面看看,"```json
+{
+  ""tool_name"": ""open_orders"",
+  ""tool_parameters"": {
+    ""app"": ""阿里巴巴"",
+    ""order_status"": ""退款-售后""
+  }
+}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""阿里巴巴"", ""order_status"": ""退款-售后""}}",False,False,False
+唯品会,订单,用唯品会看看那些已经取消的待付款订单,"```json
+{""error"": ""No valid tool or parameter found to fulfill the request""}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""唯品会"", ""order_status"": ""已取消的待付款""}}",False,False,False
+唯品会,订单,打开唯品会，查找我已完成的待付款订单,"```json
+{
+  ""error"": ""No valid tool or parameter found to fulfill the request""
+}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""唯品会"", ""order_status"": ""已完成的待付款""}}",False,False,False
+唯品会,订单,打开唯品会，看看有哪些订单还没付款,"```json
+{
+  ""tool_name"": ""open_orders"",
+  ""tool_parameters"": {
+    ""app"": ""唯品会"",
+    ""order_status"": ""待付款""
+  }
+}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""唯品会"", ""order_status"": ""待付款""}}",False,False,False
+唯品会,订单,帮我在唯品会里瞧瞧待评价的订单,"```json
+{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""唯品会"", ""order_status"": ""待评价""}}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""唯品会"", ""order_status"": ""待评价""}}",False,False,False
+唯品会,订单,能不能去唯品会看一下我有啥待收货的订单,"```json
+{
+  ""tool_name"": ""open_orders"",
+  ""tool_parameters"": {
+    ""app"": ""唯品会"",
+    ""order_status"": ""待收货""
+  }
+}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""唯品会"", ""order_status"": ""待收货""}}",False,False,False
+唯品会,客服,去唯品会找客服咨询,"```json
+{
+  ""tool_name"": ""open_customer_service"",
+  ""tool_parameters"": {
+    ""app"": ""唯品会""
+  }
+}
+```","{""tool_name"": ""open_customer_service"", ""tool_parameters"": {""app"": ""唯品会""}}",False,False,False
+唯品会,订单,唯品会上，我想看看我的所有订单。,"```json
+{
+  ""tool_name"": ""open_orders"",
+  ""tool_parameters"": {
+    ""app"": ""唯品会"",
+    ""order_status"": ""无""
+  }
+}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""唯品会"", ""order_status"": ""无""}}",False,False,False
+唯品会,收藏,在唯品会查看我的心愿单,"```json
+{
+  ""tool_name"": ""search_in_favorite_goods"",
+  ""tool_parameters"": {
+    ""app"": ""唯品会"",
+    ""search_info"": ""心愿单""
+  }
+}
+```","{""tool_name"": ""open_favorite_goods"", ""tool_parameters"": {""app"": ""唯品会"", ""filter_type"": ""无"", ""order_type"": ""无""}}",False,False,False
+唯品会,订单,请帮我打开唯品会的售后退换页面看看,"```json
+{
+  ""tool_name"": ""open_orders"",
+  ""tool_parameters"": {
+    ""app"": ""唯品会"",
+    ""order_status"": ""退换售后""
+  }
+}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""唯品会"", ""order_status"": ""退换售后""}}",False,False,False
+唯品会,购物车,在唯品会中查看购物车,"```json
+{""tool_name"": ""open_cart_content"", ""tool_parameters"": {""app"": ""唯品会"", ""filter_type"": ""无""}}
+```","{""tool_name"": ""open_cart_content"", ""tool_parameters"": {""app"": ""唯品会"", ""filter_type"": ""无""}}",False,False,False
+唯品会,签到,打开唯品会进行签到,"```json
+{
+  ""tool_name"": ""sign_in"",
+  ""tool_parameters"": {
+    ""app"": ""唯品会"",
+    ""page_type"": ""无""
+  }
+}
+```","{""tool_name"": ""sign_in"", ""tool_parameters"": {""app"": ""唯品会"", ""page_type"": ""无""}}",False,False,False
+唯品会,搜索,嘿，帮我在唯品会里面启动一下相机功能,"```json
+{
+  ""tool_name"": ""open_camera_search"",
+  ""tool_parameters"": {
+    ""app"": ""唯品会""
+  }
+}
+```","{""tool_name"": ""open_camera_search"", ""tool_parameters"": {""app"": ""唯品会""}}",False,False,False
+得物,搜索,在得物里面把搜索框的内容清除掉,"```json
+{""tool_name"": ""delete_search_history"", ""tool_parameters"": {""app"": ""得物""}}
+```","{""tool_name"": ""delete_search_history"", ""tool_parameters"": {""app"": ""得物""}}",False,False,False
+得物,搜索,请启动得物的相机功能,"```json
+{
+  ""tool_name"": ""open_camera_search"",
+  ""tool_parameters"": {
+    ""app"": ""得物""
+  }
+}
+```","{""tool_name"": ""open_camera_search"", ""tool_parameters"": {""app"": ""得物""}}",False,False,False
+得物,客服,在得物上面找客服聊聊,"```json
+{""tool_name"": ""open_customer_service"", ""tool_parameters"": {""app"": ""得物""}}
+```","{""tool_name"": ""open_customer_service"", ""tool_parameters"": {""app"": ""得物""}}",False,False,False
+得物,订单,打开得物，帮我看看订单,"```json
+{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""得物"", ""order_status"": ""无""}}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""得物"", ""order_status"": ""无""}}",False,False,False
+得物,订单,请帮我在得物上查看一下需要付款的订单,"```json
+{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""得物"", ""order_status"": ""待付款""}}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""得物"", ""order_status"": ""待付款""}}",False,False,False
+得物,订单,帮我在得物上看看有哪些订单还没发货,"```json
+{
+  ""tool_name"": ""open_orders"",
+  ""tool_parameters"": {
+    ""app"": ""得物"",
+    ""order_status"": ""待发货""
+  }
+}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""得物"", ""order_status"": ""待发货""}}",False,False,False
+得物,订单,去得物瞧瞧待收货的东西,"```json
+{
+  ""tool_name"": ""open_orders"",
+  ""tool_parameters"": {
+    ""app"": ""得物"",
+    ""order_status"": ""待收货""
+  }
+}
+```","{""tool_name"": ""open_orders"", ""tool_parameters"": {""app"": ""得物"", ""order_status"": ""待收货""}}",False,False,False
+得物,订单,在得物里面瞧瞧我的评价,"```json
+{""error"": ""No valid tool or parameter found to fulfill the request""}
+```","{""error"": ""No valid tool or parameter found to fulfill the request""}",False,False,False
+得物,订单,帮我在得物上申请一个退款或者售后,"```json
+{""tool_name"": ""apply_after_sales"", ""tool_parameters"": {""app"": ""得物""}}
+```","{""tool_name"": ""apply_after_sales"", ""tool_parameters"": {""app"": ""得物""}}",False,False,False
+得物,购物车,在得物查看我感兴趣的商品,"```json
+{""tool_name"": ""open_cart_content"", ""tool_parameters"": {""app"": ""得物"", ""filter_type"": ""无""}}
+```","{""tool_name"": ""open_cart_content"", ""tool_parameters"": {""app"": ""得物"", ""filter_type"": ""无""}}",False,False,False
+转转,订单,打开转转，帮我瞧瞧我的购买记录,"```json
+{
+  ""tool_name"": ""open_second_hand_orders"",
+  ""tool_parameters"": {
+    ""app"": ""转转"",
+    ""order_status"": ""无"",
+    ""product_status"": ""无"",
+    ""transaction_type"": ""我购买的""
+  }
+}
+```","{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""转转"", ""order_status"": ""无"", ""product_status"": ""无"", ""transaction_type"": ""我购买的""}}",False,False,False
+转转,订单,帮我在转转里面看看待付款的订单,"```json
+{
+  ""tool_name"": ""open_second_hand_orders"",
+  ""tool_parameters"": {
+    ""app"": ""转转"",
+    ""order_status"": ""待付款"",
+    ""product_status"": ""无"",
+    ""transaction_type"": ""我发布的""
+  }
+}
+```","{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""转转"", ""order_status"": ""待付款"", ""product_status"": ""无"", ""transaction_type"": ""我购买的""}}",False,False,False
+转转,订单,去转转里面瞧瞧待发货的订单,"```json
+{
+  ""tool_name"": ""open_second_hand_orders"",
+  ""tool_parameters"": {
+    ""app"": ""转转"",
+    ""order_status"": ""待发货"",
+    ""product_status"": ""无"",
+    ""transaction_type"": ""我发布的""
+  }
+}
+```","{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""转转"", ""order_status"": ""待发货"", ""product_status"": ""无"", ""transaction_type"": ""我购买的""}}",False,False,False
+转转,订单,打开转转，看看我的待收货订单状态,"```json
+{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""转转"", ""order_status"": ""待收货"", ""product_status"": ""无"", ""transaction_type"": ""我购买的""}}
+```","{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""转转"", ""order_status"": ""待收货"", ""product_status"": ""无"", ""transaction_type"": ""我购买的""}}",False,False,False
+转转,订单,去转转里瞅瞅待评价的订单,"```json
+{
+  ""tool_name"": ""open_second_hand_orders"",
+  ""tool_parameters"": {
+    ""app"": ""转转"",
+    ""order_status"": ""待评价"",
+    ""product_status"": ""无"",
+    ""transaction_type"": ""我卖出的""
+  }
+}
+```","{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""转转"", ""order_status"": ""待评价"", ""product_status"": ""无"", ""transaction_type"": ""我购买的""}}",False,False,False
+转转,订单,去转转里面瞅瞅退款售后的页面,"```json
+{
+  ""tool_name"": ""open_second_hand_orders"",
+  ""tool_parameters"": {
+    ""app"": ""转转"",
+    ""order_status"": ""退款售后"",
+    ""product_status"": ""无"",
+    ""transaction_type"": ""我购买的""
+  }
+}
+```","{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""转转"", ""order_status"": ""退款售后"", ""product_status"": ""无"", ""transaction_type"": ""我购买的""}}",False,False,False
+转转,订单,去转转里面瞧瞧那些还没结束的退款售后情况,"```json
+{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""转转"", ""order_status"": ""未完结的退款售后"", ""product_status"": ""无"", ""transaction_type"": ""我购买的""}}
+```","{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""转转"", ""order_status"": ""未完结的退款售后"", ""product_status"": ""无"", ""transaction_type"": ""我购买的""}}",False,False,False
+转转,订单,请打开转转，然后找到待评价的退款售后页面,"```json
+{
+  ""tool_name"": ""open_second_hand_orders"",
+  ""tool_parameters"": {
+    ""app"": ""转转"",
+    ""order_status"": ""待评价的退款售后"",
+    ""product_status"": ""无"",
+    ""transaction_type"": ""我卖出的""
+  }
+}
+```","{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""转转"", ""order_status"": ""待评价的退款售后"", ""product_status"": ""无"", ""transaction_type"": ""我购买的""}}",False,False,False
+转转,订单,请打开转转，查看我有什么发布的内容,"```json
+{
+  ""tool_name"": ""open_second_hand_orders"",
+  ""tool_parameters"": {
+    ""app"": ""转转"",
+    ""order_status"": ""无"",
+    ""product_status"": ""无"",
+    ""transaction_type"": ""我发布的""
+  }
+}
+```","{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""转转"", ""order_status"": ""无"", ""product_status"": ""无"", ""transaction_type"": ""我发布的""}}",False,False,False
+转转,订单,去转转里面瞧瞧我卖出去的商品,"```json
+{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""转转"", ""order_status"": ""无"", ""product_status"": ""无"", ""transaction_type"": ""我卖出的""}}
+```","{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""转转"", ""order_status"": ""无"", ""product_status"": ""无"", ""transaction_type"": ""我卖的""}}",False,False,False
+转转,订单,打开转转，看看我卖的正在进行中的物品,"```json
+{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""转转"", ""order_status"": ""无"", ""product_status"": ""进行中的"", ""transaction_type"": ""我卖的""}}
+```","{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""转转"", ""order_status"": ""无"", ""product_status"": ""进行中的"", ""transaction_type"": ""我卖的""}}",False,False,False
+转转,订单,打开转转查查已经完成的我的卖出订单,"```json
+{
+  ""tool_name"": ""open_second_hand_orders"",
+  ""tool_parameters"": {
+    ""app"": ""转转"",
+    ""order_status"": ""已完成的"",
+    ""product_status"": ""已完成的"",
+    ""transaction_type"": ""我卖出的""
+  }
+}
+```","{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""转转"", ""order_status"": ""无"", ""product_status"": ""已完成的"", ""transaction_type"": ""我卖的""}}",False,False,False
+转转,订单,打开转转，查看我已关闭的出售商品,"```json
+{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""转转"", ""order_status"": ""无"", ""product_status"": ""已关闭的"", ""transaction_type"": ""我发布的""}}
+```","{""tool_name"": ""open_second_hand_orders"", ""tool_parameters"": {""app"": ""转转"", ""order_status"": ""无"", ""product_status"": ""已关闭的"", ""transaction_type"": ""我卖的""}}",False,False,False

@@ -1,0 +1,7 @@
+﻿query,车辆候选列表,id,大类|小类,answer,app,正确答案,category,category正确答案,mode,mode正确答案,price,price正确答案,price_min,price_min正确答案,price_max,price_max正确答案,model,think_time,问题,备注,_vehicle_pairs,_gt_category,_gt_mode,_history,_query
+打车到云密城F栋，优先价格低的,"{""index"": ""1"",""category"":""拼车"",""carModel"": ""特价拼车"", ""price"": 61 },
+{""index"": ""2"",""category"":""拼车"",""carModel"": ""极速拼车"", ""price"": 92 },
+{""index"": ""24"",""category"":""特价"",""carModel"": ""特惠快车"", ""price"": 34 },
+{""index"": ""30"",""category"":""快速"",""carModel"": ""滴滴快车"", ""price"": 43 }",无,无|无,"[{""app"": ""无"", ""category"": ""无"", ""mode"": ""无"", ""price"": True}]",无,,无,特惠快车,无,滴滴快车,True,FALSE,-1,0,0.0,,Qwen-Max,1.1,其他,价格模糊,"[{'快速': '滴滴快车'}, {'拼车': '极速拼车'}, {'拼车': '特价拼车'}, {'特价': '特惠快车'}]",特惠快车,滴滴快车,,打车到云密城F栋，优先价格低的
+打专车,"{""index"": ""102"",""category"":""舒适出发"",""carModel"": ""滴滴专车"", ""price"": 56 },
+{""index"": ""109"",""category"":""六座"",""carModel"": ""六座专车"", ""price"": 82 }",无,无|无,[],无,,舒适出发,,滴滴专车,FALSE,False,-1,-1,0,,Model,1.2,其他,,,"[{'六座': '六座专车'}, {'舒适出发': '滴滴专车'}]",舒适出发,FALSE,,打专车

@@ -9,19 +9,19 @@ import csv
 from tqdm.asyncio import tqdm
 
 # --- 1. API 和文件路径配置 ---
-API_URL = "http://localhost:8000/v1/chat/completions"
-# API_URL = "http://10.80.0.255:25114/v1/chat/completions"
+# API_URL = "http://localhost:8000/v1/chat/completions"
+API_URL = "http://10.80.0.255:25114/v1/chat/completions"
 HEADERS = {
     "Content-Type": "application/json",
     # "Authorization": "Bearer xxx"
 }
 MODEL_NAME = "Qwen2.5-7B"
-MAX_CONCURRENT_REQUESTS = 16
+MAX_CONCURRENT_REQUESTS = 32
 
 # --- 文件路径 ---
 # INPUT_CSV_PATH = "/home/workspace/lgq/distill/data/指令集FC效果摸底数据集.ver1 - 250710（基于v1版修改pa2text后）.csv"
 INPUT_CSV_PATH = "/home/workspace/lgq/distill/data/FC能力验证数据集 - Sheet1.csv"
-OUTPUT_INFERENCE_PATH = "/home/workspace/lgq/distill/data/20250723/fc/yunke_FC能力验证_inference_results.json"
+OUTPUT_INFERENCE_PATH = "/home/workspace/lgq/distill/data/20250724/fc/yunke_FC能力验证_inference_results.json"
 
 
 async def call_model_api_async(session, item, pbar):

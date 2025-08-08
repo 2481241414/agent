@@ -1,0 +1,592 @@
+#coding:utf-8
+from tqdm import tqdm
+import pandas as pd
+from openpyxl import load_workbook
+import requests
+import json
+import time
+import random
+import string
+import hmac
+import hashlib
+import base64
+from datetime import datetime, timezone
+
+excel_name = r"D:/Pyprojects/self_code/打车语料-优化版.xlsx"
+
+
+def get_prec_and_rec(ans_set, ground_set):
+
+    intersect = len(ans_set & ground_set)
+    # 完全都为空，视为完全正确
+    if len(ans_set) == 0 and len(ground_set) == 0:
+        return {'prec': 1, 'rec': 1, 'f1': 1, 'proper': 1}
+    # 只要有一方为空都视为0分
+    if len(ans_set) == 0 and len(ground_set) != 0:
+        return {'prec': 0, 'rec': 0, 'f1': 0, 'proper': 0}
+    if len(ans_set) != 0 and len(ground_set) == 0:
+        return {'prec': 0, 'rec': 0, 'f1': 0, 'proper': 0}
+    # 有误选（多选），精确率直接为0
+    if len(ans_set - ground_set) > 0:
+        return {'prec': 0, 'rec': intersect / len(ground_set), 'f1': 0, 'proper': 0}
+    # 没有误选，精确率为1，否则为0
+    prec = 1 if ans_set == ground_set or ans_set <= ground_set else 0
+    rec = intersect / len(ground_set)
+    f1 = 2 * prec * rec / (prec + rec) if (prec + rec) > 0 else 0
+    proper = 1 if prec == 1 and rec == 1 else 0
+    return {'prec': prec, 'rec': rec, 'f1': f1, 'proper': proper}
+
+
+def extract_excel_data():
+    wb = load_workbook(excel_name)
+    sheetname = wb.sheetnames
+    for i in range(0,4):
+        sheet = wb[sheetname[i]]
+        metric = []
+        for k in range(2,sheet.max_row+1):
+            sheet.cell(k,18).value = None
+            sheet.cell(k,19).value = None
+            pred_result = sheet.cell(k,10).value
+            rec_result = sheet.cell(k,11).value
+            if pred_result == "error":
+                continue
+            try:
+                pred_result = eval(pred_result)
+                rec_result = eval(rec_result)
+                prec_rec = get_prec_and_rec(set(pred_result), set(rec_result))
+                metric.append(prec_rec)
+                sheet.cell(k,18).value = prec_rec['prec']
+                sheet.cell(k,19).value = prec_rec['rec']
+            except Exception as e:
+                print(f'sheet{i} row{k} error: {e}')
+        df_metric = pd.DataFrame(metric)
+
+        prec_mean = df_metric['prec'].mean()
+        rec_mean = df_metric['rec'].mean()
+        f1_mean = df_metric['f1'].mean()
+        proper_rate = df_metric['proper'].mean()
+
+        print(f"sheetname={sheetname[i]}")
+        print(f'**精确率（Precision）：{prec_mean:.4f}**')
+        print(f'**召回率（Recall）：{rec_mean:.4f}**')
+        print(f'**F1：{f1_mean:.4f}**')
+        print(f'**完全正确比例（proper）：{proper_rate:.4f}**')
+        wb.save(excel_name)
+
+def extract_excel_data_duolun():
+    wb = load_workbook(excel_name)
+    sheetname = wb.sheetnames
+    sheet = wb[sheetname[4]]
+    metric = []
+    for k in range(2,sheet.max_row+1):
+        sheet.cell(k,20).value = None
+        sheet.cell(k,21).value = None
+        pred_result = sheet.cell(k,12).value
+        rec_result = sheet.cell(k,13).value
+        if pred_result == "error" or rec_result is None:
+            continue
+        try:
+            pred_result = eval(pred_result)
+            rec_result = eval(rec_result)
+            prec_rec = get_prec_and_rec(set(pred_result), set(rec_result))
+            metric.append(prec_rec)
+            sheet.cell(k,20).value = prec_rec['prec']
+            sheet.cell(k,21).value = prec_rec['rec']
+        except Exception as e:
+            print(f'sheet{4} row{k} error: {e}')
+    df_metric = pd.DataFrame(metric)
+
+    prec_mean = df_metric['prec'].mean()
+    rec_mean = df_metric['rec'].mean()
+    f1_mean = df_metric['f1'].mean()
+    proper_rate = df_metric['proper'].mean()
+
+    print(f"sheetname={sheetname[4]}")
+    print(f'**精确率（Precision）：{prec_mean:.4f}**')
+    print(f'**召回率（Recall）：{rec_mean:.4f}**')
+    print(f'**F1：{f1_mean:.4f}**')
+    print(f'**完全正确比例（proper）：{proper_rate:.4f}**')
+    wb.save(excel_name)
+
+
+def clear_excel(k):
+    wb = load_workbook(excel_name)
+    sheetname = wb.sheetnames
+    sheet = wb[sheetname[k]]
+    for i in range(2,sheet.max_row+1):
+        sheet.cell(i,6).value = None
+        sheet.cell(i,7).value = None
+        sheet.cell(i,8).value = None
+        sheet.cell(i,10).value = None
+    wb.save(excel_name)
+
+
+def clear_excel_duolun(k):
+    wb = load_workbook(excel_name)
+    sheetname = wb.sheetnames
+    sheet = wb[sheetname[k]]
+    for i in range(2,sheet.max_row+1):
+        sheet.cell(i,8).value = None
+        sheet.cell(i,9).value = None
+        sheet.cell(i,10).value = None
+        sheet.cell(i,12).value = None
+    wb.save(excel_name)
+
+
+def read_excel(i,k):
+    wb = load_workbook(excel_name)
+    sheetname = wb.sheetnames
+    sheet = wb[sheetname[k]]
+    query = sheet.cell(row=i,column=3).value
+    if sheet.cell(row=i,column=4).value == "滴滴车列表":
+         extInput = sheet.cell(row=2,column=2).value
+    elif sheet.cell(row=i,column=4).value == "高德车列表":
+         extInput = sheet.cell(row=3,column=2).value
+    else:
+         extInput = sheet.cell(row=3,column=2).value
+    sysSessionId = sheet.cell(row=i,column=5).value
+    return query,extInput,sysSessionId
+
+def read_excel_duolun(i,k):
+    wb = load_workbook(excel_name)
+    sheetname = wb.sheetnames
+    sheet = wb[sheetname[k]]
+    query1 = sheet.cell(row=i,column=3).value
+    query2 = sheet.cell(row=i,column=4).value
+    query3 = sheet.cell(row=i,column=5).value
+    if sheet.cell(row=i,column=6).value == "滴滴车列表":
+         extInput = sheet.cell(row=2,column=2).value
+    elif sheet.cell(row=i,column=6).value == "高德车列表":
+         extInput = sheet.cell(row=3,column=2).value
+    else:
+         extInput = sheet.cell(row=3,column=2).value
+    sysSessionId = sheet.cell(row=i,column=7).value
+    return query1,query2,query3,extInput,sysSessionId
+
+def write_excel(i,k,model1_result, content, content2, model2_result):
+    wb = load_workbook(excel_name)
+    sheetname = wb.sheetnames
+    sheet = wb[sheetname[k]]
+    sheet.cell(i,6).value = str(model1_result)
+    sheet.cell(i,7).value = str(content)
+    sheet.cell(i,8).value = str(content2)
+    sheet.cell(i,10).value = str(model2_result)
+    wb.save(excel_name)
+
+def write_excel_duolun(i,k,model1_result, content, content2, model2_result):
+    wb = load_workbook(excel_name)
+    sheetname = wb.sheetnames
+    sheet = wb[sheetname[k]]
+    sheet.cell(i,8).value = str(model1_result)
+    sheet.cell(i,9).value = str(content)
+    sheet.cell(i,10).value = str(content2)
+    sheet.cell(i,12).value = str(model2_result)
+    wb.save(excel_name)
+
+def generate_hmac_headers():
+    # 密钥配置
+    ACCESS_KEY = "aip_yoyo_assistant_1744015109999"
+    SECRET_KEY = "iTN%T#%g42IQk#Y-g987z-QCE@L@vUHf45a".encode('utf-8')
+
+    # 1. 生成时间戳
+    date_header = datetime.now(timezone.utc).strftime('%a, %d %b %Y %H:%M:%S GMT')
+
+    # 2. 构建签名头列表
+    signed_headers = [
+        ("X-HMAC-ALGORITHM", "hmac-sha256"),
+        ("X-HMAC-ACCESS-KEY", ACCESS_KEY),
+        ("x-request-nonce", "20250428lhx003")
+    ]
+
+    # 3. 构造签名字符串
+    method = "POST"
+    path = "/aip/access-agent/cloud-api/v1/task/take_taxi_strategy_analyze/aip_yoyo_assistant"
+    params = ""  # 根据实际请求参数设置
+
+    signing_components = [
+        method,
+        path,
+        params,
+        ACCESS_KEY,
+        date_header,
+        "\n".join([f"{k}:{v}" for k, v in signed_headers])
+    ]
+    signing_string = "\n".join(signing_components) + "\n"  # 末尾必须换行
+
+    # 4. 计算签名
+    signature = hmac.new(
+        SECRET_KEY,
+        signing_string.encode('utf-8'),
+        hashlib.sha256
+    ).digest()
+    base64_signature = base64.b64encode(signature).decode('utf-8')
+
+    # 5. 组装请求头
+    headers = {
+        "X-HMAC-ACCESS-KEY": ACCESS_KEY,
+        "X-HMAC-SIGNATURE": base64_signature,
+        "X-HMAC-ALGORITHM": "hmac-sha256",
+        "Date": date_header,
+        "X-HMAC-SIGNED-HEADERS": ";".join([k for k, v in signed_headers]),
+        "x-request-nonce": "20250428lhx003",
+        'x-device-type': 'PHONE',
+        'x-country': 'CN',
+        'x-rom-version': '234',
+        'x-language': 'zh',
+        'x-time-zone': '234',
+        'x-model': 'ATQ',
+        'Content-Type': 'application/json',
+        'x-req-env': 'gray'
+    }
+
+    return headers
+
+def generate_hmac_headers1():
+    # 密钥配置
+    ACCESS_KEY = "aip_yoyo_assistant_1744015109999"
+    SECRET_KEY = "iTN%T#%g42IQk#Y-g987z-QCE@L@vUHf45a".encode('utf-8')
+
+    # 1. 生成时间戳
+    date_header = datetime.now(timezone.utc).strftime('%a, %d %b %Y %H:%M:%S GMT')
+
+    # 2. 构建签名头列表
+    signed_headers = [
+        ("X-HMAC-ALGORITHM", "hmac-sha256"),
+        ("X-HMAC-ACCESS-KEY", ACCESS_KEY),
+        ("x-request-nonce", "20250429lhx002")
+    ]
+
+    # 3. 构造签名字符串
+    method = "POST"
+    path = "/aip/access-agent/cloud-api/v1/task/take_taxi_sku_choose/aip_yoyo_assistant"
+    params = ""  # 根据实际请求参数设置
+
+    signing_components = [
+        method,
+        path,
+        params,
+        ACCESS_KEY,
+        date_header,
+        "\n".join([f"{k}:{v}" for k, v in signed_headers])
+    ]
+    signing_string = "\n".join(signing_components) + "\n"  # 末尾必须换行
+
+    # 4. 计算签名
+    signature = hmac.new(
+        SECRET_KEY,
+        signing_string.encode('utf-8'),
+        hashlib.sha256
+    ).digest()
+    base64_signature = base64.b64encode(signature).decode('utf-8')
+
+    # 5. 组装请求头
+    headers = {
+        "X-HMAC-ACCESS-KEY": ACCESS_KEY,
+        "X-HMAC-SIGNATURE": base64_signature,
+        "X-HMAC-ALGORITHM": "hmac-sha256",
+        "Date": date_header,
+        "X-HMAC-SIGNED-HEADERS": ";".join([k for k, v in signed_headers]),
+        'x-request-nonce': '20250429lhx002',
+        'x-device-type': 'PHONE',
+        'x-country': 'CN',
+        'x-rom-version': '234',
+        'x-language': 'zh',
+        'x-time-zone': '234',
+        'x-model': 'ATQ',
+        'Content-Type': 'application/json',
+        'x-req-env': 'gray',
+        # 'x-origin-udid': 'wuchengtest'
+        # 'x-origin-udid': 'betacase0604faqfzy'
+    }
+    return headers
+
+# 模型1
+def getresult(query,sysSessionId):
+    url = "http://aiplatac-pre-drcn.inner.cloud.hihonor.com/aip/access-agent/cloud-api/v1/task/take_taxi_strategy_analyze/aip_yoyo_assistant"
+
+    payload = json.dumps({
+        "session": {
+            "sessionId": "{}".format(sysSessionId),
+            "sysSessionId": "{}".format(sysSessionId)
+        },
+        "input": {
+            "messageList": [
+                {
+                    "role": "user",
+                    "content": "{}".format(query)
+                }
+            ]
+        },
+        "switches": [
+            {
+                "key": "developerDebugMode",
+                "value": "on"
+            }
+        ]
+    })
+
+    headers = generate_hmac_headers()
+
+    response = requests.request("POST", url, headers=headers,data=payload)
+
+    return json.loads(response.content)["data"]["taskResult"]["strategyList"][0]
+
+def getresult_duolun(query1, query2, query3, sysSessionId):
+    url = "http://aiplatac-pre-drcn.inner.cloud.hihonor.com/aip/access-agent/cloud-api/v1/task/take_taxi_strategy_analyze/aip_yoyo_assistant"
+
+    payload = json.dumps({
+        "session": {
+            "sessionId": "{}".format(sysSessionId),
+            "sysSessionId": "{}".format(sysSessionId)
+        },
+        "input": {
+            "messageList": [
+                {
+                    "content": "{}".format(query1),
+                    "role": "user"
+                },
+                {
+                    "content": "好的，请进一步描述你的需求",
+                    "role": "assistant"
+                },
+                {
+                    "content": "{}".format(query2),
+                    "role": "user"
+                },
+                {
+                    "content": "好的，请进一步描述你的需求",
+                    "role": "assistant"
+                },
+                {
+                    "content": "{}".format(query3),
+                    "role": "user"
+                }
+            ]
+        },
+        "switches": [
+            {
+                "key": "developerDebugMode",
+                "value": "on"
+            }
+        ]
+    })
+
+    headers = generate_hmac_headers()
+
+    response = requests.request("POST", url, headers=headers,data=payload)
+
+    # print(response.content)
+
+    return json.loads(response.content)["data"]["taskResult"]["strategyList"][0]
+
+def get_model1_content(sysSessionId):
+    url = "https://wo-drcn-test.cloud.hihonor.com/aip-pre/aip-admin/v1/message/search"
+
+    headers = {
+        'Content-Type': 'application/json',
+        'cookie': 'Path=/; portal=inter; lang=zh; woLang=zh; honor_wp_lang=zh_CN; deviceId=1daf8ec30b75f04062081810443bed13; TID=1daf8ec30b75f04062081810443bed13; GLOBAL_SESSION_CMP_BETA=fe081db8-4c06-4dc6-8a3c-0f2573ff5fcc; logFlag=in; suid=87C27D6ADC5D1B23DBDAD4BF826DC783EB04498E44B4D62893A09DF729555E59; hwssot3=31357001167422; uid=313031303AC424DBD9D9C200E98158A2B56596A383861197DBAEE5EAB530520967C2FD59A84EB127DA2F5328EE; hwssotinter3=31357575015620; authmethod=31303130F0D47F8279C633D4FB52C79FB6829D58F1793E0521AA89357B953766319178C7694C; hwssotinter=31303130FFEAA7E091453EEDF61569B76A96F7E9DB2250FFD7C1D5E2C6849CC515447AAAB55602D0D1FD02C5CBA0D9DCAC; hwsso_uniportal=B00aA56MvAidEuYBEqUNbm6ZEEFIFadGNhNWB93qZHbCjJB9Nh0ncAyC1_bPekILDpuc4cupbdh6rKWNmt0R0GqS5I5z_b_bgDX0Uhmglul_bjHL5181v02T0nggoFozPby7tFHmQrMl6M1if2Oeh1N029ivGMqx6sWULu5Rdk4bQOjjMSlYojfhH39_aQeyMiokBYL4_bLSfdkq5GZN32cIlZd621rwfh4O_bfnOIXdpUwFIvPqKvUEZCR04pLpUhajFJ7cAgDX5ZA_b7GdkpL3V3FIqZ2Q1ZsSvwzzgY2Rnu6NR1TOSuTUtYks_aC2g0t_b_a1RD6xaO5oWIVjsMSXdlyJ6cN6w_c_c####jDrTpRCfxdjaiP7GVQ8C4iCuqPDPmVgL40_ajsvBqg63UpbY3urxR_bzNUw8zbsExD2BCQ4AqXvtaZwOWS_a10g5MfT2qFMUrWA9eaaO5RsfLSYRXyeGJ4F9yMeXPXPRqSF8eUnelrn4gElNwdHCiq9KOfYniya1EdTg2B1qwm51_bw1gk8swBvAtKNlzeU3gfumPWkHiHg1RFnsuqwbIED11jLlu7nYtsqaIhBawaaAGN8JUZ1077cLpT2XrJr2_bB5XE_buzUkzS1er4lofxEuU6WHNyHLmCeujAVOghbw4ONP_asyUBxgcXGBWDz_b4QjPGLgMcFpjiiIePHdJIvR0TFTeg_c_c####QrXbRoAERF2ABVdrtHCQ0zIuT9X61ABsbOWOlE9wPETAJp7OU1VuyxA8DhCHNosbBAqqtuwKsQ1G9PELWbn_aTGJjn7y4jFuBsOvGAKCG9Yxx3nyXMn9bjzAdvnQ_aVJGG9sjktAVa9P011kPDOJKqwdlCNl0GAqW5Kcx9uiK6lYErr7hEfg7WQruXYW81SMTQSCBFYp0XSrIvjqkhTYL35sCFjrQyyeRoBTztBvNleG5wFhUjjNEjQqFiQmBo4gjuuFpj_a6LADSW9tI5_aUF42QfLsq3CwlK02zTY71uoFm2JOjTHTASVl0YzWVNMJdrOTrwoHOUw0hK1p_aUWL8KC0QA_c_c; sip=3130313068554FEB83CE1CD915E487FB5E2061BCB0AB58397FD64739BA0091B7C6B695CD0552DC01DE194962BF5245B53B608A2A6A54D8629538E15927BF1DBDCDE2A53DEC14C04D156B7A13871EE097917772A8416762831615A144; sid=3130313035124D6A070F745BACC715BF1AE6A0753D20DCA1D45BC7B76E78BAD233C037DE30186C4504CBFB63A5E542F988EBF4B61172572351449D455D6DB4B7EFC519E7D0EB12B4; woAuth=QUVTR0NNQEREQzlDQURFM0E5Rjk2NUMyNUMwMzBERjoyNEMzQjMwOUZBMzkwMzJFMjk1ODFGQzRDRDFGRjM4OEU5QTBGNTg0Mjk3NUFGREJGQTc3Mjk2ODdEQjczMkM5MDhGOTFERUIxRkI2NTcxRTkyMDc2NDgyRUU3NkI3QjYxMjgzOUI2QzNCMDk2QkE2OEJBQzZFNEREOThFRTU5MA=='
+    }
+
+    data = {"sysSessionId": sysSessionId, "clientId": "", "producerNodeType": "", "currentRoundId": "", "recentRounds": 5}
+
+    # 创建一个Session对象
+    session = requests.Session()
+
+    # 发送POST请求
+    response = session.post(url, json=data, headers=headers, stream=True)
+
+    if response.status_code == 200:
+        result = response.content.decode('utf-8')
+        try:
+            json_data = json.loads(result)
+            if len(json_data.get("data", [])) >= 2:
+                content = json_data["data"][-2]['messageDetail']['content']
+                content2 = json_data["data"][-1]['messageDetail']['content']
+            else:
+                content = ''
+                content2 = ''
+        except json.JSONDecodeError as e:
+            print(f"JSON解析错误: {e}")
+    else:
+        # 如果请求失败，写入错误信息
+        content = f"Error: {response.status_code}"
+        content2 = f"Error: {response.status_code}"
+
+    return content,content2
+
+# 模型2
+def getresult2(query, extInput, sysSessionId):
+    url = "http://aiplatac-pre-drcn.inner.cloud.hihonor.com/aip/access-agent/cloud-api/v1/task/take_taxi_sku_choose/aip_yoyo_assistant"
+
+    payload = json.dumps({
+        "session": {
+            "sessionId": "{}".format(sysSessionId),
+            "sysSessionId": "{}".format(sysSessionId)
+        },
+        "input": {
+            "messageList": [
+                {
+                    "role": "user",
+                    "content": "{}".format(query),
+                    "taskExts": [
+                        {
+                            "extType": "take_taxi_sku_choose",
+                            "extInput": json.loads(extInput)
+                        }
+                    ]
+                }
+            ]
+        }
+    })
+    headers = generate_hmac_headers1()
+
+    response = requests.request("POST", url, headers=headers,data=payload)
+
+    return json.loads(response.content)["data"]["taskResult"]["selectList"]
+
+def getresult2_duolun(query1, query2, query3, extInput, sysSessionId):
+    url = "http://aiplatac-pre-drcn.inner.cloud.hihonor.com/aip/access-agent/cloud-api/v1/task/take_taxi_sku_choose/aip_yoyo_assistant"
+
+    payload = json.dumps({
+        "session": {
+            "sessionId": "{}".format(sysSessionId),
+            "sysSessionId": "{}".format(sysSessionId)
+        },
+        "input": {
+            "messageList": [{
+                    "content": "{}".format(query1),
+                    "role": "user"
+                },
+                {
+                    "content": "好的，请进一步描述你的需求",
+                    "role": "assistant"
+                },
+                {
+                    "content": "{}".format(query2),
+                    "role": "user"
+                },
+                {
+                    "content": "好的，请进一步描述你的需求",
+                    "role": "assistant"
+                },
+                {
+                    "content": "{}".format(query3),
+                    "role": "user",
+                    "taskExts": [
+                        {
+                            "extType": "take_taxi_sku_choose",
+                            "extInput":  json.loads(extInput)
+                        }
+                    ]
+                }
+            ]
+        }
+    })
+
+    headers = generate_hmac_headers1()
+
+    response = requests.request("POST", url, headers=headers,data=payload)
+
+    return json.loads(response.content)["data"]["taskResult"]["selectList"]
+
+if __name__ == '__main__':
+
+    # 价格推理
+    clear_excel(0)
+    for i in range(2,202):
+        print("价格推理" + str(i))
+        try:
+            query, extInput, sysSessionId = read_excel(i,0)
+            model1_result = getresult(query,sysSessionId)
+            print(model1_result)
+            time.sleep(2)
+            content, content2 = get_model1_content(sysSessionId)
+            print(content)
+            print(content2)
+            model2_result = getresult2(query, extInput, sysSessionId)
+            print(model2_result)
+            write_excel(i, 0, model1_result, content, content2, model2_result)
+        except Exception as e:
+            print(str(e))
+            write_excel(i, 0, "error", "error", "error", "error")
+
+    # 车型理解
+    # clear_excel(1)
+    # for i in range(2,202):
+    # # for i in tqdm(range(2,52), total=52-2):
+    #     print("车型理解" + str(i))
+    #     try:
+    #         query, extInput, sysSessionId = read_excel(i,1)
+    #         model1_result = getresult(query,sysSessionId)
+    #         print(model1_result)
+    #         time.sleep(2)
+    #         content, content2 = get_model1_content(sysSessionId)
+    #         print(content)
+    #         print(content2)
+    #         # print(f"{query=}")
+    #         # print(f"{extInput=}")
+    #         model2_result = getresult2(query, extInput, sysSessionId)
+    #         print(model2_result)
+    #         write_excel(i, 1, model1_result, content, content2, model2_result)
+    #     except Exception as e:
+    #         print(str(e))
+    #         write_excel(i, 1, "error", "error", "error", "error")
+
+    # 组合场景
+    # clear_excel(2)
+    # for i in range(2,377):
+    #     print("组合场景" + str(i))
+    #     try:
+    #         query, extInput, sysSessionId = read_excel(i,2)
+    #         model1_result = getresult(query,sysSessionId)
+    #         print(model1_result)
+    #         time.sleep(2)
+    #         content, content2 = get_model1_content(sysSessionId)
+    #         print(content)
+    #         print(content2)
+    #         model2_result = getresult2(query, extInput, sysSessionId)
+    #         print(model2_result)
+    #         write_excel(i, 2, model1_result, content, content2, model2_result)
+    #     except Exception as e:
+    #         print(str(e))
+    #         write_excel(i, 2, "error", "error", "error", "error")
+
+    # appName场景
+    # clear_excel(3)
+    # for i in range(2,92):
+    #     print("appName场景" + str(i))
+    #     try:
+    #         query, extInput, sysSessionId = read_excel(i,3)
+    #         model1_result = getresult(query,sysSessionId)
+    #         print(model1_result)
+    #         time.sleep(2)
+    #         content, content2 = get_model1_content(sysSessionId)
+    #         print(content)
+    #         print(content2)
+    #         model2_result = getresult2(query, extInput, sysSessionId)
+    #         print(model2_result)
+    #         write_excel(i, 3, model1_result, content, content2, model2_result)
+    #     except Exception as e:
+    #         print(str(e))
+    #         write_excel(i, 3, "error", "error", "error", "error")
+
+    # 多轮对话
+    # clear_excel_duolun(4)
+    # for i in range(2,113):
+    #     print("多轮对话" + str(i))
+    #     try:
+    #         query1, query2, query3, extInput, sysSessionId = read_excel_duolun(i,4)
+    #         model1_result = getresult_duolun(query1, query2, query3, sysSessionId)
+    #         print(model1_result)
+    #         time.sleep(2)
+    #         content, content2 = get_model1_content(sysSessionId)
+    #         print(content)
+    #         print(content2)
+    #         model2_result = getresult2_duolun(query1, query2, query3, extInput, sysSessionId)
+    #         print(model2_result)
+    #         write_excel_duolun(i, 4, model1_result, content, content2, model2_result)
+    #     except Exception as e:
+    #         print(str(e))
+    #         write_excel_duolun(i, 4, "error", "error", "error", "error")
+    extract_excel_data()
+    extract_excel_data_duolun()
