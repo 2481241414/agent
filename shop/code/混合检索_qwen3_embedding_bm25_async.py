@@ -217,7 +217,7 @@ class InstructionSearcher:
             query_embedding_np = np.array([query_embedding], dtype='float32')
             faiss.normalize_L2(query_embedding_np)
             
-            num_neighbors = min(len(self.unique_instructions), 50) 
+            num_neighbors = min(len(self.unique_instructions), 30) 
             distances, indices = self.faiss_index.search(query_embedding_np, k=num_neighbors)
             
             tool_scores = np.zeros(len(self.definitions), dtype='float32')
@@ -435,19 +435,19 @@ async def main():
     # 模型和API的配置
     MODEL_PATH = '/home/workspace/lgq/shop/model/Qwen3-Embedding-0.6B'
     VLLM_API_URL = "http://localhost:8000/v1/embeddings" 
-    VLLM_SERVED_MODEL_NAME = "/home/workspace/lgq/shop/model/Qwen3-Embedding-0,6B" # 这个名字需要和vLLM启动时感知的模型名一致
+    VLLM_SERVED_MODEL_NAME = "/home/workspace/lgq/shop/model/Qwen3-Embedding-8B" # 这个名字需要和vLLM启动时感知的模型名一致
     # API并发请求阈值，可根据服务器能力调整
-    API_CONCURRENCY_LIMIT = 200000 # 任何时候最多只有 200000 个请求在同时进行
+    API_CONCURRENCY_LIMIT = 200 # 任何时候最多只有 200000 个请求在同时进行
 
     # 其他配置
-    annotated_data_file_path = '/home/workspace/lgq/shop/data/single_gt_output_with_plan_0815.csv'
+    # annotated_data_file_path = '/home/workspace/lgq/shop/data/single_gt_output_with_plan_0815.csv'
     # annotated_data_file_path = '/home/workspace/lgq/shop/data/single_gt_output_with_fc_0815_能力.csv'
-    # annotated_data_file_path = '/home/workspace/lgq/shop/data/single_gt_购物语料-测试结果标注 - 场景单任务1_0815.csv'
+    annotated_data_file_path = '/home/workspace/lgq/shop/data/single_gt_购物语料-测试结果标注 - 场景单任务1_0815_processed_data.csv'
     K_VALUES = [1, 2, 3, 5, 10]
     NUM_ERROR_EXAMPLES_TO_PRINT = 10
-    OUTPUT_FILE_PATH = f'/home/workspace/lgq/shop/data/evaluate/hybrid_recall_results_{MODE}_plan_0.6b.csv' 
+    # OUTPUT_FILE_PATH = f'/home/workspace/lgq/shop/data/evaluate/hybrid_recall_results_{MODE}_plan_0.6b.csv' 
     # OUTPUT_FILE_PATH = f'/home/workspace/lgq/shop/data/evaluate/hybrid_recall_results_{MODE}_fc能力_0.6b.csv'
-    # OUTPUT_FILE_PATH = f'/home/workspace/lgq/shop/data/evaluate/hybrid_recall_results_{MODE}_测试_8b.csv'
+    OUTPUT_FILE_PATH = f'/home/workspace/lgq/shop/data/evaluate/hybrid_recall_results_{MODE}_测试_8b.csv'
 
     # --- 1. 数据加载 ---
     print("--- 步骤 1: 加载完整数据集 ---")
@@ -480,14 +480,14 @@ async def main():
     # --- 3. 计算所有分数 (统一流程) ---
     print("\n--- 步骤 3: 计算所有召回分数 ---")
     bm25_start_time = time.time()
-    # all_bm25_scores = [bm25_retriever.retrieve_scores(row['plan（在xx中做什么）']) for _, row in tqdm(data_df.iterrows(), total=len(data_df), desc="计算BM25分数")]
-    all_bm25_scores = [bm25_retriever.retrieve_scores(row['query']) for _, row in tqdm(data_df.iterrows(), total=len(data_df), desc="计算BM25分数")]
+    all_bm25_scores = [bm25_retriever.retrieve_scores(row['plan（在xx中做什么）']) for _, row in tqdm(data_df.iterrows(), total=len(data_df), desc="计算BM25分数")]
+    # all_bm25_scores = [bm25_retriever.retrieve_scores(row['query']) for _, row in tqdm(data_df.iterrows(), total=len(data_df), desc="计算BM25分数")]
     
     bm25_end_time = time.time()
 
     semantic_start_time = time.time()
-    # all_plan_queries = data_df['plan（在xx中做什么）'].tolist()
-    all_plan_queries = data_df['query'].tolist()
+    all_plan_queries = data_df['plan（在xx中做什么）'].tolist()
+    # all_plan_queries = data_df['query'].tolist()
     all_semantic_scores = await instruction_searcher.initialize_and_get_all_scores(all_plan_queries)
     semantic_end_time = time.time()
     

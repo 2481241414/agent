@@ -1098,9 +1098,9 @@ async def main():
 
     EMBEDDING_MODEL_PATH = '/path/to/your/Qwen3-Embedding-0.6B'
     VLLM_EMBEDDING_API_URL = "http://localhost:8000/v1/embeddings" 
-    VLLM_EMBEDDING_MODEL_NAME = "/home/workspace/lgq/shop/model/Qwen3-Embedding-0.6B"
+    VLLM_EMBEDDING_MODEL_NAME = "/home/workspace/lgq/shop/model/Qwen3-Embedding-8B"
 
-    RERANKER_MODEL_PATH = '/home/workspace/lgq/shop/model/Qwen3-Reranker-0.6B'
+    RERANKER_MODEL_PATH = '/home/workspace/lgq/shop/model/Qwen3-Reranker-8B'
     VLLM_RERANKER_API_URL = "http://localhost:8001/v1/rerank" 
     
     # 为 embedding 和 reranker 分别设置并发限制

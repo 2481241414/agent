@@ -293,6 +293,7 @@ def calculate_auc_for_query(all_scores: np.ndarray, tool_defs: list, ground_trut
 # 区域 4: 工具定义 (保持不变)
 # ==============================================================================
 def get_exact_tool_definitions():
+    # ... (您的工具定义，此处省略以保持简洁)
     tools = [
         # 1. 购物 - 搜索 (1.1)
         {"name": "search_goods(app, search_info_slot, page_type, filter_detail_slot, type_slot, area_slot, order_type)", "description": "在app程序中依据名称搜索商品,可以指定具体在哪一个子页面进行搜索, 搜索结果的筛选条件和排序方式"},
@@ -362,33 +363,57 @@ def get_exact_tool_definitions():
 # ==============================================================================
 # 区域 5: 评测核心逻辑 (保持不变)
 # ==============================================================================
-def evaluate_recall_system(data_df, all_bm25_scores, all_semantic_scores, all_tools_definitions, alpha, k_values, full_report=False):
+# ==============================================================================
+# 区域 5: 评测核心逻辑 (已修改为RRF)
+# ==============================================================================
+
+def get_ranks_from_scores(scores: np.ndarray) -> dict:
+    """将分数数组转换为 {工具索引: 排名} 的字典。排名从1开始。"""
+    sorted_indices = np.argsort(scores)[::-1]
+    # 创建一个 {工具索引: 排名} 的映射
+    ranks = {index: rank + 1 for rank, index in enumerate(sorted_indices)}
+    return ranks
+
+def evaluate_recall_system_rrf(data_df, all_bm25_scores, all_semantic_scores, all_tools_definitions, k_values, rrf_k=60, full_report=False):
+    """
+    【已更新】使用RRF（倒数排序融合）进行评测。
+    :param rrf_k: RRF公式中的常数k，默认为60。
+    """
     results = defaultdict(lambda: defaultdict(list))
     error_cases = []
     latency_records = []
     detailed_predictions = [] 
 
-    def normalize(scores):
-        min_s, max_s = scores.min(), scores.max()
-        if (max_s - min_s) == 0: return np.zeros_like(scores)
-        return (scores - min_s) / (max_s - min_s)
-
     # 从 data_df 的索引中获取正确的 scores 索引
     score_indices = data_df.index.tolist()
 
-    for i, (_, row) in enumerate(data_df.iterrows()):
+    for i, (_, row) in enumerate(tqdm(data_df.iterrows(), total=len(data_df), desc="使用RRF融合并评测")):
         start_time = time.time()
         
-        # 使用原始索引从全局分数列表中获取分数
         original_index = score_indices[i]
         ground_truth = row['ground_truth_tool']
         bm25_scores = all_bm25_scores[original_index]
         semantic_scores = all_semantic_scores[original_index]
         
-        norm_bm25 = normalize(bm25_scores)
-        norm_semantic = normalize(semantic_scores)
-        final_scores = alpha * norm_bm25 + (1 - alpha) * norm_semantic
+        # --- RRF 核心逻辑 ---
+        # 1. 获取每个召回系统的排名
+        bm25_ranks = get_ranks_from_scores(bm25_scores)
+        semantic_ranks = get_ranks_from_scores(semantic_scores)
         
+        # 2. 计算每个工具的RRF分数
+        num_tools = len(all_tools_definitions)
+        final_scores = np.zeros(num_tools)
+        for tool_idx in range(num_tools):
+            # 获取排名，如果工具不在排名列表中（不太可能，但为了安全），给一个很大的排名
+            rank_bm25 = bm25_ranks.get(tool_idx, num_tools + 1)
+            rank_semantic = semantic_ranks.get(tool_idx, num_tools + 1)
+            
+            # 计算RRF分数并累加
+            rrf_score_bm25 = 1 / (rrf_k + rank_bm25)
+            rrf_score_semantic = 1 / (rrf_k + rank_semantic)
+            final_scores[tool_idx] = rrf_score_bm25 + rrf_score_semantic
+        
+        # 3. 排序并获取最终结果
         sorted_indices = np.argsort(final_scores)[::-1]
         retrieved = [all_tools_definitions[idx] for idx in sorted_indices]
         retrieved_scores = final_scores[sorted_indices]
@@ -396,8 +421,8 @@ def evaluate_recall_system(data_df, all_bm25_scores, all_semantic_scores, all_to
         end_time = time.time()
         latency_records.append(end_time - start_time)
 
+        # 后续的评测指标计算逻辑保持不变...
         if full_report:
-            # ... (这部分逻辑保持不变)
             prediction_record = {
                 "query": row['query'],
                 "plan": row['plan（在xx中做什么）'],
@@ -419,20 +444,21 @@ def evaluate_recall_system(data_df, all_bm25_scores, all_semantic_scores, all_to
                 gt_names = _get_tool_names(ground_truth)
                 pred_name_top1 = retrieved[0].get('name') if retrieved else "N/A"
                 error_cases.append({"Query": row['plan（在xx中做什么）'], "Ground Truth": list(gt_names), "Prediction@1": [pred_name_top1], "Prediction@5": [r.get('name') for r in retrieved[:5]]})
-        else:
-            results['Recall@K'][1].append(calculate_recall_at_k(retrieved, ground_truth, 1))
-
-    if full_report:
-        return results, error_cases, latency_records, detailed_predictions
-    else:
-        return np.mean(results['Recall@K'][1])
+    
+    # 注意：RRF没有Recall@1的中间结果，所以我们只返回完整报告
+    return results, error_cases, latency_records, detailed_predictions
 
 # ==============================================================================
 # 区域 6: 主程序 (已重构)
 # ==============================================================================
 
 # ==================== 新增函数: 封装完整的评测流程 ====================
-def run_full_evaluation_on_subset(
+# ==============================================================================
+# 区域 6: 主程序 (已重构为RRF)
+# ==============================================================================
+
+# ==================== 新增函数: 封装RRF评测流程 ====================
+def run_full_evaluation_on_subset_rrf(
     subset_df, 
     subset_name, 
     all_bm25_scores, 
@@ -440,48 +466,29 @@ def run_full_evaluation_on_subset(
     all_tools_definitions, 
     k_values, 
     mode, 
-    num_error_examples, 
+    num_error_examples,
+    rrf_k,
     output_file_path=None
 ):
     """
-    对给定的数据子集执行完整的评测流程：
-    1. Alpha值网格搜索
-    2. 使用最佳Alpha进行最终的、完整的评测
-    3. 汇总并报告最终结果
-    4. 打印错误案例
-    5. (可选)保存详细结果
+    【已更新】对给定的数据子集执行完整的RRF评测流程。
     """
     if subset_df.empty:
         print(f"\n--- 数据子集 '{subset_name}' 为空，跳过评测。 ---")
         return
 
     print(f"\n\n{'='*30}\n"
-          f"--- 开始对【{subset_name}】子集 (共 {len(subset_df)} 条) 进行评测 ---\n"
+          f"--- 开始对【{subset_name}】子集 (共 {len(subset_df)} 条) 进行评测 (融合策略: RRF) ---\n"
           f"{'='*30}")
 
-    # --- 步骤 4.1: Alpha值网格搜索 ---
-    print(f"\n--- 步骤 4 ({subset_name}): 开始进行Alpha值网格搜索 ---")
-    alpha_range = np.linspace(0, 1, 101)
-    best_alpha = -1
-    best_score = -1
-    
-    for alpha in tqdm(alpha_range, desc=f"Alpha网格搜索 ({subset_name})"):
-        current_score = evaluate_recall_system(subset_df, all_bm25_scores, all_semantic_scores, all_tools_definitions, alpha, k_values)
-        if current_score > best_score:
-            best_score = current_score
-            best_alpha = alpha
-
-    print(f"\n--- Alpha值网格搜索完成 ({subset_name}) ---")
-    print(f"找到的最佳Alpha值: {best_alpha:.2f} (对应的最高平均Recall@1为: {best_score:.4f})")
-    
-    # --- 步骤 5.1: 使用最佳Alpha进行最终的、完整的评测 ---
-    print(f"\n--- 步骤 5 ({subset_name}): 使用最佳Alpha={best_alpha:.2f}进行最终的完整评测 ---")
-    results, error_cases, latency_records, detailed_predictions = evaluate_recall_system(
-        subset_df, all_bm25_scores, all_semantic_scores, all_tools_definitions, best_alpha, k_values, full_report=True
+    # --- 步骤 4 & 5: 直接使用RRF进行最终的、完整的评测 ---
+    print(f"\n--- 步骤 4 & 5 ({subset_name}): 使用RRF (k={rrf_k}) 进行完整评测 ---")
+    results, error_cases, latency_records, detailed_predictions = evaluate_recall_system_rrf(
+        subset_df, all_bm25_scores, all_semantic_scores, all_tools_definitions, k_values, rrf_k=rrf_k, full_report=True
     )
     
-    # --- 步骤 6.1: 汇总并报告最终结果 ---
-    print(f"\n\n--- 步骤 6: 最终评测结果报告 (模式: {mode.upper()}, 子集: {subset_name}, Alpha: {best_alpha:.2f}) ---")
+    # --- 步骤 6: 汇总并报告最终结果 ---
+    print(f"\n\n--- 步骤 6: 最终评测结果报告 (模式: {mode.upper()}, 子集: {subset_name}, 融合策略: RRF, k={rrf_k}) ---")
     final_scores_report = {}
     for metric, vals in results.items():
         if metric == 'AUC': 
@@ -494,15 +501,16 @@ def run_full_evaluation_on_subset(
     
     average_latency_ms = np.mean(latency_records) * 1000
 
-    print(f"混合召回模型 (BM25 + 精准意图[{mode.upper()}]) 在【{subset_name}】数据集上的评测结果:")
+    print(f"RRF混合召回模型 (BM25 + 精准意图[{mode.upper()}]) 在【{subset_name}】数据集上的评测结果:")
     print("-" * 70)
     print(report_df.to_string(formatters={col: '{:.4f}'.format for col in report_df.columns}))
     print(f"\n**AUC (全量排序 ROC AUC)**: {final_scores_report['AUC']:.4f}")
-    print(f"**平均查询处理时延 (分数融合+排序)**: {average_latency_ms:.4f} 毫秒/查询")
+    print(f"**平均查询处理时延 (RRF融合+排序)**: {average_latency_ms:.4f} 毫秒/查询")
     print("-" * 70)
 
-    # --- 步骤 7.1: 错误分析 ---
+    # --- 步骤 7: 错误分析 (逻辑不变) ---
     print(f"\n\n--- 步骤 7 ({subset_name}): Top-1 错误案例分析 (共 {len(error_cases)} 个错误) ---")
+    # ... (这部分代码与之前完全相同)
     if not error_cases:
         print(f"🎉 恭喜！在【{subset_name}】数据集上没有发现 Top-1 错误案例！")
     else:
@@ -516,8 +524,10 @@ def run_full_evaluation_on_subset(
             print(f"\n... (仅显示前 {num_error_examples} 个错误案例) ...")
     print("-" * 70)
 
-    # --- 步骤 8.1: 保存文件 ---
+
+    # --- 步骤 8: 保存文件 (逻辑不变) ---
     if output_file_path:
+        # ... (这部分代码与之前完全相同)
         print(f"\n\n--- 步骤 8 ({subset_name}): 保存详细召回结果到文件 ---")
         try:
             output_records = []
@@ -543,50 +553,39 @@ def run_full_evaluation_on_subset(
 
 async def main():
     # --- 0. 配置区域 ---
+    # ... (这部分配置保持不变)
     MODE = 'api'
     MODEL_PATH = '/home/workspace/lgq/shop/model/Qwen3-Embedding-0.6B'
     VLLM_API_URL = "http://localhost:8000/v1/embeddings"
-    VLLM_SERVED_MODEL_NAME = "/home/workspace/lgq/shop/model/Qwen3-Embedding-8B"
+    VLLM_SERVED_MODEL_NAME = "/home/workspace/lgq/shop/model/Qwen3-Embedding-0.6B"
     API_CONCURRENCY_LIMIT = 20
-
-    # 您的数据文件路径
-    annotated_data_file_path = '/home/workspace/lgq/shop/data/tagged_cleaned_ground_truth_with_desc_output.csv'
+    annotated_data_file_path = '/home/workspace/lgq/shop/data/tagged_cleaned_ground_truth_output.csv'
     K_VALUES = [1, 2, 3, 5, 10]
-    NUM_ERROR_EXAMPLES_TO_PRINT = 5 # 减少每个子集的错误案例打印数量
+    NUM_ERROR_EXAMPLES_TO_PRINT = 5
+    base_output_path = f'/home/workspace/lgq/shop/data/evaluate/rrf_recall_results_{MODE}_0.6b_instruct' # <-- 更新输出文件名
     
-    # 输出文件路径现在将包含子集信息
-    # base_output_path = f'/home/workspace/lgq/shop/data/evaluate/hybrid_recall_results_{MODE}_0.6b'
-    base_output_path = f'/home/workspace/lgq/shop/data/evaluate/hybrid_recall_results_{MODE}_8b_instruct'
-
-    # --- 1. 数据加载与划分 ---
+    # === 新增: RRF常数k ===
+    RRF_K_CONSTANT = 60
+    
+    # --- 1. 数据加载与划分 (逻辑不变) ---
     print("--- 步骤 1: 加载并划分数据集 ---")
-    
-    # === 修改: 增加 'tag' 列到 usecols ===
+    # ... (这部分代码与之前完全相同)
     try:
-        # 假设CSV文件的第一列是 'tag'
-        data_df = pd.read_csv(annotated_data_file_path, usecols=['tag', '指令', 'ground_truth_tool', 'query', 'plan（在xx中做什么）', 'ground_truth_tool_description'])
+        data_df = pd.read_csv(annotated_data_file_path, usecols=['tag', '指令', 'ground_truth_tool', 'query', 'plan（在xx中做什么）'])
     except ValueError:
-        # 如果没有列名，则手动指定
-        data_df = pd.read_csv(annotated_data_file_path, header=None, names=['tag', 'category', 'app', 'query', 'plan（在xx中做什么）', '指令', 'ground_truth_tool', 'ground_truth_tool_description'])
-
+        data_df = pd.read_csv(annotated_data_file_path, header=None, names=['tag', 'category', 'app', 'query', 'plan（在xx中做什么）', '指令', 'ground_truth_tool'])
     data_df = data_df.dropna(subset=['指令', 'ground_truth_tool', 'tag']).reset_index(drop=True)
     def parse_tools(s): return ast.literal_eval(s) if isinstance(s, str) else []
     data_df['ground_truth_tool'] = data_df['ground_truth_tool'].apply(parse_tools)
-    
-    # === 新增: 划分数据子集 ===
     single_task_df = data_df[data_df['tag'] == '单任务'].copy()
     multi_task_df = data_df[data_df['tag'] == '多任务'].copy()
-
     print(f"数据加载完成: 共 {len(data_df)} 条 (单任务: {len(single_task_df)}, 多任务: {len(multi_task_df)})。\n")
 
-
-    # --- 2. 初始化双路召回器 (使用全量数据) ---
+    # --- 2. 初始化双路召回器 (逻辑不变) ---
     all_tools_definitions = get_exact_tool_definitions()
-    
+    # ... (这部分代码与之前完全相同)
     init_start_time = time.time()
-    # 使用全量数据初始化，以构建最全的知识库
     bm25_retriever = BM25Retriever(data_df, all_tools_definitions)
-    
     instruction_searcher = InstructionSearcher(
         data_df=data_df, 
         all_tools_definitions=all_tools_definitions,
@@ -598,35 +597,19 @@ async def main():
     init_end_time = time.time()
     print(f"\n--- [计时] BM25及意图通路框架初始化耗时: {init_end_time - init_start_time:.2f} 秒 ---\n")
 
-    # --- 3. 为【全量数据】计算所有分数 (一次性完成，避免重复计算) ---
+    # --- 3. 为【全量数据】计算所有分数 (逻辑不变) ---
     print("\n--- 步骤 3: 为全量数据计算所有召回分数 ---")
-    bm25_start_time = time.time()
-    # all_bm25_scores = [bm25_retriever.retrieve_scores(row['query']) for _, row in tqdm(data_df.iterrows(), total=len(data_df), desc="计算BM25分数")]
-    # all_bm25_scores = [bm25_retriever.retrieve_scores(row['ground_truth_tool_description']) for _, row in tqdm(data_df.iterrows(), total=len(data_df), desc="计算BM25分数")]
-    all_bm25_scores = [bm25_retriever.retrieve_scores(row['plan（在xx中做什么）']) for _, row in tqdm(data_df.iterrows(), total=len(data_df), desc="计算BM25分数")]
-    bm25_end_time = time.time()
-
-    semantic_start_time = time.time()
-    # all_plan_queries = data_df['query'].tolist()
-    all_plan_queries = data_df['plan（在xx中做什么）'].tolist()
-    # all_plan_queries = data_df['ground_truth_tool_description'].tolist()
+    # ... (这部分代码与之前完全相同)
+    # all_bm25_scores = [bm25_retriever.retrieve_scores(row['plan（在xx中做什么）']) for _, row in tqdm(data_df.iterrows(), total=len(data_df), desc="计算BM25分数")]
+    # all_plan_queries = data_df['plan（在xx中做什么）'].tolist()
+    all_bm25_scores = [bm25_retriever.retrieve_scores(row['query']) for _, row in tqdm(data_df.iterrows(), total=len(data_df), desc="计算BM25分数")]
+    all_plan_queries = data_df['query'].tolist()
     all_semantic_scores = await instruction_searcher.initialize_and_get_all_scores(all_plan_queries)
-    semantic_end_time = time.time()
-    
-    total_queries = len(data_df)
-    if total_queries > 0:
-        avg_bm25_latency = (bm25_end_time - bm25_start_time) / total_queries * 1000
-        avg_semantic_latency = (semantic_end_time - semantic_start_time) / total_queries * 1000
-        print(f"\n--- [计算时延分析] ---")
-        print(f"  BM25通路平均时延: {avg_bm25_latency:.4f} 毫秒/查询")
-        print(f"  精准意图通路平均时延 (模式: {MODE.upper()}): {avg_semantic_latency:.4f} 毫秒/查询")
-        print("-" * 30)
 
-    # --- 4, 5, 6, 7, 8: 对每个子集分别运行完整评测流程 ---
-    # === 重构后的核心评测调用 ===
+    # --- 4, 5, 6, 7, 8: 对每个子集分别运行完整RRF评测流程 ---
     
     # 评测单任务
-    run_full_evaluation_on_subset(
+    run_full_evaluation_on_subset_rrf(
         subset_df=single_task_df,
         subset_name="单任务",
         all_bm25_scores=all_bm25_scores,
@@ -635,11 +618,12 @@ async def main():
         k_values=K_VALUES,
         mode=MODE,
         num_error_examples=NUM_ERROR_EXAMPLES_TO_PRINT,
+        rrf_k=RRF_K_CONSTANT,
         output_file_path=f"{base_output_path}_singletask.csv"
     )
 
     # 评测多任务
-    run_full_evaluation_on_subset(
+    run_full_evaluation_on_subset_rrf(
         subset_df=multi_task_df,
         subset_name="多任务",
         all_bm25_scores=all_bm25_scores,
@@ -648,11 +632,12 @@ async def main():
         k_values=K_VALUES,
         mode=MODE,
         num_error_examples=NUM_ERROR_EXAMPLES_TO_PRINT,
+        rrf_k=RRF_K_CONSTANT,
         output_file_path=f"{base_output_path}_multitask.csv"
     )
 
     # 评测整体
-    run_full_evaluation_on_subset(
+    run_full_evaluation_on_subset_rrf(
         subset_df=data_df,
         subset_name="整体",
         all_bm25_scores=all_bm25_scores,
@@ -661,6 +646,7 @@ async def main():
         k_values=K_VALUES,
         mode=MODE,
         num_error_examples=NUM_ERROR_EXAMPLES_TO_PRINT,
+        rrf_k=RRF_K_CONSTANT,
         output_file_path=f"{base_output_path}_overall.csv"
     )
 

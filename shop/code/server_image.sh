@@ -5,13 +5,13 @@ export VLLM_WORKER_MULTIPROC_METHOD=spawn
 
 # --- 这里是关键修改 ---
 # 指定使用物理ID为 2 和 3 的显卡。
-export CUDA_VISIBLE_DEVICES=4,5
+export CUDA_VISIBLE_DEVICES=2,3,4,5,6,7
 
 # 设置张量并行的大小，必须与上面指定的显卡数量一致。
-TENSOR_PARALLEL_SIZE=2
+TENSOR_PARALLEL_SIZE=6
 
 # 显存使用率
-GPU_MEM_UTILIZATION=0.8
+GPU_MEM_UTILIZATION=0.6
 
 echo "指定使用显卡 ID: ${CUDA_VISIBLE_DEVICES}"
 echo "设置张量并行大小为: ${TENSOR_PARALLEL_SIZE}"
@@ -19,7 +19,7 @@ echo "尝试以 ${GPU_MEM_UTILIZATION} 的显存使用率启动 vLLM..."
 
 # 启动 vLLM OpenAI API 服务器
 python -m vllm.entrypoints.openai.api_server \
-    --model /home/workspace/lgq/ms-swift/output/v2-20250813-043051/checkpoint-684 \
+    --model /home/workspace/zm/hf_model/Qwen-Image \
     --trust-remote-code \
     --port 8000 \
     --tensor-parallel-size ${TENSOR_PARALLEL_SIZE} \

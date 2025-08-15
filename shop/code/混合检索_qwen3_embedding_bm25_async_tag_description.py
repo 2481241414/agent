@@ -27,55 +27,69 @@ except ImportError as e:
     exit()
 
 # ==============================================================================
-# 区域 2: 召回器类定义 (保持不变)
+# 区域 2: 召回器类定义 (已修改)
 # ==============================================================================
 class BM25Retriever:
-    """【关键词通路】BM25召回器，专注于关键词和用户多样化表达的匹配。"""
+    """【关键词通路】BM25召回器，基于工具描述构建语料库。"""
     def __init__(self, data_df: pd.DataFrame, all_tools_definitions: list, k1=1.5, b=0.75):
         self.definitions = all_tools_definitions
         self.tool_name_to_idx = {tool['name']: i for i, tool in enumerate(all_tools_definitions)}
         self._add_jieba_words()
         
-        print("--- [BM25通路] 正在构建关键词增强语料库... ---")
-        corpus = self._build_keyword_rich_corpus(data_df)
+        print("--- [BM25通路] 正在基于【工具描述】构建关键词增强语料库... ---")
+        ### 新增/修改 ###: 调用新的语料库构建方法
+        corpus = self._build_corpus_from_descriptions(data_df)
         tokenized_corpus = [jieba.lcut(doc, cut_all=False) for doc in tqdm(corpus, desc="BM25语料库分词")]
         self.bm25 = BM25Okapi(tokenized_corpus, k1=k1, b=b)
         print("--- [BM25通路] 召回器构建完成 ---")
 
     def _add_jieba_words(self):
+        # (此函数保持不变)
         for tool in self.definitions:
             jieba.add_word(tool.get('name', '').split('(')[0], freq=100)
         core_words = ["购物车", "采购车", "待收货", "待付款", "收藏夹", "发票", "优惠券"]
         for word in core_words:
             jieba.add_word(word, freq=100)
 
-    def _build_keyword_rich_corpus(self, data_df: pd.DataFrame) -> list:
+    ### 新增/修改 ###: 新的语料库构建方法，使用'ground_truth_tool_description'
+    def _build_corpus_from_descriptions(self, data_df: pd.DataFrame) -> list:
         tool_text_aggregator = defaultdict(list)
-        # 修正: 确保正确处理多任务中的每个工具
+        # 遍历数据，将每个工具的描述聚合起来
         for _, row in data_df.iterrows():
             tools = row.get('ground_truth_tool')
-            if not isinstance(tools, list) or not tools: continue
+            descriptions_str = row.get('ground_truth_tool_description')
+
+            if not isinstance(tools, list) or not tools or pd.isna(descriptions_str):
+                continue
             
-            instruction_parts = []
-            if pd.notna(row['指令']):
-                instruction_parts = row['指令'].split('\n')
-
-            for i, tool in enumerate(tools):
-                tool_name = tool['name']
-                # 如果指令可以按行分割对应，则分配对应的指令片段
-                if i < len(instruction_parts):
-                    tool_text_aggregator[tool_name].append(instruction_parts[i].strip())
-                # 否则，将整个指令块与该工具关联
-                elif pd.notna(row['指令']):
-                     tool_text_aggregator[tool_name].append(row['指令'])
-
+            descriptions = descriptions_str.strip().split('\n')
+            
+            # 确保工具和描述能够对应
+            if len(tools) == len(descriptions):
+                for tool, desc in zip(tools, descriptions):
+                    tool_name = tool['name']
+                    # 将工具描述和工具名称本身加入聚合文本
+                    tool_text_aggregator[tool_name].append(desc)
+                    tool_text_aggregator[tool_name].append(tool_name.split('(')[0]) # 添加函数名
+            else:
+                 # 如果不对应，则将所有描述与所有工具关联（一种降级策略）
+                 for tool in tools:
+                     tool_name = tool['name']
+                     tool_text_aggregator[tool_name].extend(descriptions)
+                     tool_text_aggregator[tool_name].append(tool_name.split('(')[0])
+        
+        # 为每个定义好的工具构建文档
         corpus = [''] * len(self.definitions)
         for tool_def in self.definitions:
             tool_name = tool_def['name']
             tool_idx = self.tool_name_to_idx[tool_name]
+            
+            # 使用set去重，然后连接
             aggregated_text = ' '.join(set(tool_text_aggregator.get(tool_name, [])))
-            document = f"{aggregated_text}"
+            # 每个工具的文档由其自身的描述和聚合到的所有相关描述构成
+            document = f"{tool_def['description']} {aggregated_text}"
             corpus[tool_idx] = document
+            
         return corpus
 
     def retrieve_scores(self, query: str) -> np.ndarray:
@@ -84,7 +98,7 @@ class BM25Retriever:
 
 
 class InstructionSearcher:
-    """【精准意图通路】支持本地加载或API调用两种模式，以统一向量化方式。"""
+    """【精准意图通路】基于工具描述进行向量化和召回。"""
     def __init__(self, data_df: pd.DataFrame, all_tools_definitions: list, mode: str, model_path_or_name: str, api_url: str = None, api_concurrency_limit: int = 10):
         self.definitions = all_tools_definitions
         self.mode = mode
@@ -103,31 +117,36 @@ class InstructionSearcher:
             print(f"--- [意图通路] API并发请求阈值设置为: {self.api_concurrency_limit} ---")
         else:
             raise ValueError("模式 (mode) 必须是 'local' 或 'api'")
+        
+        ### 新增/修改 ###: 调用新的映射构建方法
+        self._build_mappings_from_description(data_df)
 
-        self._build_mappings(data_df)
-
-    def _build_mappings(self, data_df: pd.DataFrame):
-        self.instruction_to_tool_map = {}
-        # 修正：为多任务场景创建更准确的指令到工具的映射
+    ### 新增/修改 ###: 新的映射构建方法，使用'ground_truth_tool_description'
+    def _build_mappings_from_description(self, data_df: pd.DataFrame):
+        self.description_to_tool_map = {}
         for _, row in data_df.iterrows():
             tools = row.get('ground_truth_tool')
-            if pd.isna(row['指令']) or not isinstance(tools, list) or not tools:
+            descriptions_str = row.get('ground_truth_tool_description')
+            
+            if pd.isna(descriptions_str) or not isinstance(tools, list) or not tools:
                 continue
             
-            instructions = [i.strip() for i in row['指令'].strip().split('\n')]
+            descriptions = [d.strip() for d in descriptions_str.strip().split('\n')]
             
-            # 单任务或指令与工具一对一的情况
-            if len(instructions) == len(tools):
-                for instruction, tool in zip(instructions, tools):
-                    self.instruction_to_tool_map[instruction] = tool
-            # 多任务但指令无法清晰分割，则将整个指令块映射到第一个工具（作为一种妥协）
+            if len(descriptions) == len(tools):
+                for desc, tool in zip(descriptions, tools):
+                    self.description_to_tool_map[desc] = tool
             else:
-                self.instruction_to_tool_map[row['指令'].strip()] = tools[0]
-
-        self.unique_instructions = list(self.instruction_to_tool_map.keys())
+                # 降级策略：将第一个描述映射到第一个工具
+                if descriptions and tools:
+                    self.description_to_tool_map[descriptions[0]] = tools[0]
+        
+        # self.unique_instructions 现在变成了 self.unique_descriptions
+        self.unique_descriptions = list(self.description_to_tool_map.keys())
         self.tool_name_to_idx = {tool['name']: i for i, tool in enumerate(self.definitions)}
 
     def _build_faiss_index(self, embeddings: np.ndarray):
+        # (此函数保持不变)
         embeddings = embeddings.astype('float32')
         embedding_dim = embeddings.shape[1]
         self.faiss_index = faiss.IndexFlatIP(embedding_dim)
@@ -135,14 +154,13 @@ class InstructionSearcher:
         self.faiss_index.add(embeddings)
 
     async def _get_embeddings_from_api(self, texts: list, session: aiohttp.ClientSession) -> list:
+        # (此函数保持不变)
         semaphore = asyncio.Semaphore(self.api_concurrency_limit)
         
         async def fetch_embedding(text):
-            # 如果文本是空或仅包含空格，则直接失败
             if not text or text.isspace():
                 print(f"API请求失败: 输入文本为空。")
                 return None
-                
             async with semaphore:
                 headers = {"Content-Type": "application/json"}
                 payload = {"model": self.model_path_or_name, "input": text}
@@ -152,7 +170,6 @@ class InstructionSearcher:
                             result = await response.json()
                             return result.get('data', [{}])[0].get('embedding')
                         else:
-                            # !!! 增强日志：打印详细错误信息和失败的文本 !!!
                             error_text = await response.text()
                             print(f"API请求失败, 状态码: {response.status}, 错误: {error_text[:200]}, 失败文本: '{text}'")
                             return None
@@ -171,31 +188,32 @@ class InstructionSearcher:
         return [emb if emb is not None else [] for emb in embeddings]
 
     async def initialize_and_get_all_scores(self, all_plan_queries: list):
-        print(f"--- [意图通路] 正在将 {len(self.unique_instructions)} 条唯一指令编码为向量...")
+        ### 新增/修改 ###: 基于工具描述进行向量化
+        print(f"--- [意图通路] 正在将 {len(self.unique_descriptions)} 条唯一【工具描述】编码为向量...")
         
-        instruction_embeddings = []
+        description_embeddings = []
         if self.mode == 'local':
-            instruction_embeddings = self.model.encode(self.unique_instructions, convert_to_tensor=False, show_progress_bar=True)
+            description_embeddings = self.model.encode(self.unique_descriptions, convert_to_tensor=False, show_progress_bar=True)
         else:
             async with aiohttp.ClientSession() as session:
-                raw_embeddings = await self._get_embeddings_from_api(self.unique_instructions, session)
+                raw_embeddings = await self._get_embeddings_from_api(self.unique_descriptions, session)
             
             successful_embeddings_map = {}
-            for inst, emb in zip(self.unique_instructions, raw_embeddings):
+            for desc, emb in zip(self.unique_descriptions, raw_embeddings):
                 if emb:
-                    successful_embeddings_map[inst] = emb
+                    successful_embeddings_map[desc] = emb
 
-            if len(successful_embeddings_map) != len(self.unique_instructions):
-                 print(f"警告: {len(self.unique_instructions) - len(successful_embeddings_map)} 条指令向量化失败!")
+            if len(successful_embeddings_map) != len(self.unique_descriptions):
+                 print(f"警告: {len(self.unique_descriptions) - len(successful_embeddings_map)} 条【工具描述】向量化失败!")
                  if not successful_embeddings_map:
-                     raise RuntimeError("所有指令向量化失败，无法继续！")
+                     raise RuntimeError("所有【工具描述】向量化失败，无法继续！")
             
-            self.unique_instructions = list(successful_embeddings_map.keys())
-            instruction_embeddings = list(successful_embeddings_map.values())
-            self.instruction_to_tool_map = {k: self.instruction_to_tool_map[k] for k in self.unique_instructions}
+            self.unique_descriptions = list(successful_embeddings_map.keys())
+            description_embeddings = list(successful_embeddings_map.values())
+            self.description_to_tool_map = {k: self.description_to_tool_map[k] for k in self.unique_descriptions}
 
 
-        self._build_faiss_index(np.array(instruction_embeddings))
+        self._build_faiss_index(np.array(description_embeddings))
         print("--- [意图通路] Faiss索引构建完成 ---")
 
         print(f"--- [意图通路] 正在对 {len(all_plan_queries)} 条查询进行评分...")
@@ -216,14 +234,16 @@ class InstructionSearcher:
             query_embedding_np = np.array([query_embedding], dtype='float32')
             faiss.normalize_L2(query_embedding_np)
             
-            num_neighbors = min(len(self.unique_instructions), 50) 
+            ### 新增/修改 ###: 搜索邻居数量基于描述数量
+            num_neighbors = min(len(self.unique_descriptions), 50) 
             distances, indices = self.faiss_index.search(query_embedding_np, k=num_neighbors)
             
             tool_scores = np.zeros(len(self.definitions), dtype='float32')
             for dist, idx in zip(distances[0], indices[0]):
                 if idx != -1:
-                    matched_instruction = self.unique_instructions[idx]
-                    tool_def = self.instruction_to_tool_map.get(matched_instruction)
+                    ### 新增/修改 ###: 从描述映射中查找工具
+                    matched_description = self.unique_descriptions[idx]
+                    tool_def = self.description_to_tool_map.get(matched_description)
                     if tool_def:
                         tool_idx = self.tool_name_to_idx.get(tool_def['name'])
                         if tool_idx is not None:
@@ -234,6 +254,7 @@ class InstructionSearcher:
         
 # ==============================================================================
 # 区域 3: 评测函数 (保持不变)
+# (此区域代码无须修改)
 # ==============================================================================
 def _get_tool_names(tools: list) -> set:
     if not isinstance(tools, list): return set()
@@ -291,8 +312,10 @@ def calculate_auc_for_query(all_scores: np.ndarray, tool_defs: list, ground_trut
 
 # ==============================================================================
 # 区域 4: 工具定义 (保持不变)
+# (此区域代码无须修改)
 # ==============================================================================
 def get_exact_tool_definitions():
+    # ... (您的工具定义)
     tools = [
         # 1. 购物 - 搜索 (1.1)
         {"name": "search_goods(app, search_info_slot, page_type, filter_detail_slot, type_slot, area_slot, order_type)", "description": "在app程序中依据名称搜索商品,可以指定具体在哪一个子页面进行搜索, 搜索结果的筛选条件和排序方式"},
@@ -358,11 +381,12 @@ def get_exact_tool_definitions():
     ]
     return tools
 
-
 # ==============================================================================
 # 区域 5: 评测核心逻辑 (保持不变)
+# (此区域代码无须修改)
 # ==============================================================================
 def evaluate_recall_system(data_df, all_bm25_scores, all_semantic_scores, all_tools_definitions, alpha, k_values, full_report=False):
+    # ... (此函数保持不变)
     results = defaultdict(lambda: defaultdict(list))
     error_cases = []
     latency_records = []
@@ -373,13 +397,11 @@ def evaluate_recall_system(data_df, all_bm25_scores, all_semantic_scores, all_to
         if (max_s - min_s) == 0: return np.zeros_like(scores)
         return (scores - min_s) / (max_s - min_s)
 
-    # 从 data_df 的索引中获取正确的 scores 索引
     score_indices = data_df.index.tolist()
 
     for i, (_, row) in enumerate(data_df.iterrows()):
         start_time = time.time()
         
-        # 使用原始索引从全局分数列表中获取分数
         original_index = score_indices[i]
         ground_truth = row['ground_truth_tool']
         bm25_scores = all_bm25_scores[original_index]
@@ -397,7 +419,6 @@ def evaluate_recall_system(data_df, all_bm25_scores, all_semantic_scores, all_to
         latency_records.append(end_time - start_time)
 
         if full_report:
-            # ... (这部分逻辑保持不变)
             prediction_record = {
                 "query": row['query'],
                 "plan": row['plan（在xx中做什么）'],
@@ -428,10 +449,9 @@ def evaluate_recall_system(data_df, all_bm25_scores, all_semantic_scores, all_to
         return np.mean(results['Recall@K'][1])
 
 # ==============================================================================
-# 区域 6: 主程序 (已重构)
+# 区域 6: 主程序 (已修改)
 # ==============================================================================
 
-# ==================== 新增函数: 封装完整的评测流程 ====================
 def run_full_evaluation_on_subset(
     subset_df, 
     subset_name, 
@@ -443,14 +463,7 @@ def run_full_evaluation_on_subset(
     num_error_examples, 
     output_file_path=None
 ):
-    """
-    对给定的数据子集执行完整的评测流程：
-    1. Alpha值网格搜索
-    2. 使用最佳Alpha进行最终的、完整的评测
-    3. 汇总并报告最终结果
-    4. 打印错误案例
-    5. (可选)保存详细结果
-    """
+    # (此函数保持不变)
     if subset_df.empty:
         print(f"\n--- 数据子集 '{subset_name}' 为空，跳过评测。 ---")
         return
@@ -459,7 +472,6 @@ def run_full_evaluation_on_subset(
           f"--- 开始对【{subset_name}】子集 (共 {len(subset_df)} 条) 进行评测 ---\n"
           f"{'='*30}")
 
-    # --- 步骤 4.1: Alpha值网格搜索 ---
     print(f"\n--- 步骤 4 ({subset_name}): 开始进行Alpha值网格搜索 ---")
     alpha_range = np.linspace(0, 1, 101)
     best_alpha = -1
@@ -474,13 +486,11 @@ def run_full_evaluation_on_subset(
     print(f"\n--- Alpha值网格搜索完成 ({subset_name}) ---")
     print(f"找到的最佳Alpha值: {best_alpha:.2f} (对应的最高平均Recall@1为: {best_score:.4f})")
     
-    # --- 步骤 5.1: 使用最佳Alpha进行最终的、完整的评测 ---
     print(f"\n--- 步骤 5 ({subset_name}): 使用最佳Alpha={best_alpha:.2f}进行最终的完整评测 ---")
     results, error_cases, latency_records, detailed_predictions = evaluate_recall_system(
         subset_df, all_bm25_scores, all_semantic_scores, all_tools_definitions, best_alpha, k_values, full_report=True
     )
     
-    # --- 步骤 6.1: 汇总并报告最终结果 ---
     print(f"\n\n--- 步骤 6: 最终评测结果报告 (模式: {mode.upper()}, 子集: {subset_name}, Alpha: {best_alpha:.2f}) ---")
     final_scores_report = {}
     for metric, vals in results.items():
@@ -501,7 +511,6 @@ def run_full_evaluation_on_subset(
     print(f"**平均查询处理时延 (分数融合+排序)**: {average_latency_ms:.4f} 毫秒/查询")
     print("-" * 70)
 
-    # --- 步骤 7.1: 错误分析 ---
     print(f"\n\n--- 步骤 7 ({subset_name}): Top-1 错误案例分析 (共 {len(error_cases)} 个错误) ---")
     if not error_cases:
         print(f"🎉 恭喜！在【{subset_name}】数据集上没有发现 Top-1 错误案例！")
@@ -516,7 +525,6 @@ def run_full_evaluation_on_subset(
             print(f"\n... (仅显示前 {num_error_examples} 个错误案例) ...")
     print("-" * 70)
 
-    # --- 步骤 8.1: 保存文件 ---
     if output_file_path:
         print(f"\n\n--- 步骤 8 ({subset_name}): 保存详细召回结果到文件 ---")
         try:
@@ -548,43 +556,35 @@ async def main():
     VLLM_API_URL = "http://localhost:8000/v1/embeddings"
     VLLM_SERVED_MODEL_NAME = "/home/workspace/lgq/shop/model/Qwen3-Embedding-8B"
     API_CONCURRENCY_LIMIT = 20
-
-    # 您的数据文件路径
-    annotated_data_file_path = '/home/workspace/lgq/shop/data/tagged_cleaned_ground_truth_with_desc_output.csv'
+    annotated_data_file_path = '/home/workspace/lgq/shop/data/tagged_cleaned_ground_truth_with_desc_output.csv' ### 新增/修改 ###: 确保使用最新数据
     K_VALUES = [1, 2, 3, 5, 10]
-    NUM_ERROR_EXAMPLES_TO_PRINT = 5 # 减少每个子集的错误案例打印数量
-    
-    # 输出文件路径现在将包含子集信息
-    # base_output_path = f'/home/workspace/lgq/shop/data/evaluate/hybrid_recall_results_{MODE}_0.6b'
-    base_output_path = f'/home/workspace/lgq/shop/data/evaluate/hybrid_recall_results_{MODE}_8b_instruct'
+    NUM_ERROR_EXAMPLES_TO_PRINT = 5
+    base_output_path = f'/home/workspace/lgq/shop/data/evaluate/desc_based_recall_{MODE}_8b' ### 新增/修改 ###: 更新输出文件名
 
     # --- 1. 数据加载与划分 ---
     print("--- 步骤 1: 加载并划分数据集 ---")
-    
-    # === 修改: 增加 'tag' 列到 usecols ===
     try:
-        # 假设CSV文件的第一列是 'tag'
-        data_df = pd.read_csv(annotated_data_file_path, usecols=['tag', '指令', 'ground_truth_tool', 'query', 'plan（在xx中做什么）', 'ground_truth_tool_description'])
-    except ValueError:
-        # 如果没有列名，则手动指定
+        # 确保读取了所有需要的列
+        data_df = pd.read_csv(annotated_data_file_path, usecols=['tag', 'ground_truth_tool', 'query', 'plan（在xx中做什么）', 'ground_truth_tool_description'])
+    except ValueError as e:
+        print(f"加载CSV时出错: {e}。请确保文件包含'tag', 'ground_truth_tool', 'query', 'plan（在xx中做什么）', 'ground_truth_tool_description'这些列。")
+        # 降级处理，尝试读取无表头文件
         data_df = pd.read_csv(annotated_data_file_path, header=None, names=['tag', 'category', 'app', 'query', 'plan（在xx中做什么）', '指令', 'ground_truth_tool', 'ground_truth_tool_description'])
+        data_df = data_df[['tag', 'ground_truth_tool', 'query', 'plan（在xx中做什么）', 'ground_truth_tool_description']]
 
-    data_df = data_df.dropna(subset=['指令', 'ground_truth_tool', 'tag']).reset_index(drop=True)
+
+    data_df = data_df.dropna(subset=['ground_truth_tool', 'ground_truth_tool_description', 'tag']).reset_index(drop=True)
     def parse_tools(s): return ast.literal_eval(s) if isinstance(s, str) else []
     data_df['ground_truth_tool'] = data_df['ground_truth_tool'].apply(parse_tools)
     
-    # === 新增: 划分数据子集 ===
     single_task_df = data_df[data_df['tag'] == '单任务'].copy()
     multi_task_df = data_df[data_df['tag'] == '多任务'].copy()
-
     print(f"数据加载完成: 共 {len(data_df)} 条 (单任务: {len(single_task_df)}, 多任务: {len(multi_task_df)})。\n")
 
-
-    # --- 2. 初始化双路召回器 (使用全量数据) ---
+    # --- 2. 初始化双路召回器 ---
     all_tools_definitions = get_exact_tool_definitions()
     
     init_start_time = time.time()
-    # 使用全量数据初始化，以构建最全的知识库
     bm25_retriever = BM25Retriever(data_df, all_tools_definitions)
     
     instruction_searcher = InstructionSearcher(
@@ -598,18 +598,16 @@ async def main():
     init_end_time = time.time()
     print(f"\n--- [计时] BM25及意图通路框架初始化耗时: {init_end_time - init_start_time:.2f} 秒 ---\n")
 
-    # --- 3. 为【全量数据】计算所有分数 (一次性完成，避免重复计算) ---
+    # --- 3. 为全量数据计算所有分数 ---
     print("\n--- 步骤 3: 为全量数据计算所有召回分数 ---")
     bm25_start_time = time.time()
-    # all_bm25_scores = [bm25_retriever.retrieve_scores(row['query']) for _, row in tqdm(data_df.iterrows(), total=len(data_df), desc="计算BM25分数")]
-    # all_bm25_scores = [bm25_retriever.retrieve_scores(row['ground_truth_tool_description']) for _, row in tqdm(data_df.iterrows(), total=len(data_df), desc="计算BM25分数")]
+    # 使用'plan（在xx中做什么）'作为BM25的查询输入
     all_bm25_scores = [bm25_retriever.retrieve_scores(row['plan（在xx中做什么）']) for _, row in tqdm(data_df.iterrows(), total=len(data_df), desc="计算BM25分数")]
     bm25_end_time = time.time()
 
     semantic_start_time = time.time()
-    # all_plan_queries = data_df['query'].tolist()
+    # 使用'plan（在xx中做什么）'作为语义模型的查询输入
     all_plan_queries = data_df['plan（在xx中做什么）'].tolist()
-    # all_plan_queries = data_df['ground_truth_tool_description'].tolist()
     all_semantic_scores = await instruction_searcher.initialize_and_get_all_scores(all_plan_queries)
     semantic_end_time = time.time()
     
@@ -623,7 +621,6 @@ async def main():
         print("-" * 30)
 
     # --- 4, 5, 6, 7, 8: 对每个子集分别运行完整评测流程 ---
-    # === 重构后的核心评测调用 ===
     
     # 评测单任务
     run_full_evaluation_on_subset(
